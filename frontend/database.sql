@@ -16,6 +16,9 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
+-- Optional: RFID UID for physical badge enrollment/display
+alter table public.profiles add column if not exists rfid_uid text;
+
 -- Rewards catalog
 create table if not exists public.reward_categories (
   id bigserial primary key,
@@ -275,3 +278,42 @@ create policy earning_ops_write_admin on public.earning_opportunities for all us
 
 -- Helper: mark one email as admin in profile
 -- Run once: update profiles set role='admin' where email = 'seerealthesis@gmail.com';
+
+-- Unified activity feed RPC
+create or replace function public.activity_feed(limit_count integer default 20)
+returns table(
+  created_at timestamptz,
+  action_type text,
+  message text
+) language sql security definer set search_path = public as $$
+  with
+  l as (
+    select created_at, action_type, message from public.logs
+  ),
+  t as (
+    select created_at, 'Points'::text as action_type,
+           case when amount >= 0 then concat('+', amount, ' pts') else concat(amount, ' pts') end as message
+    from public.point_transactions
+  ),
+  c as (
+    select created_at, 'Reward Redeemed'::text as action_type,
+           concat('Redeemed reward #', reward_id, ' for ', cost, ' pts') as message
+    from public.reward_claims
+  ),
+  r as (
+    select created_at, 'Recycle'::text as action_type,
+           concat('+', points_awarded, ' pts for recycling ', material, ' x', quantity) as message
+    from public.recycling_logs
+  )
+  select * from (
+    select * from l
+    union all
+    select * from t
+    union all
+    select * from c
+    union all
+    select * from r
+  ) all_events
+  order by created_at desc
+  limit greatest(1, limit_count);
+$$;

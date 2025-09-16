@@ -120,6 +120,7 @@
                 const session = await ensureSessionRedirect({ redirectIf:true, target:'../../index.html' });
                 if(!session) return; currentUser = session.user;
                 await Promise.all([loadStats(), loadCategories(), loadRewards()]);
+                setupRealtime();
                 setupUI();
               }
 
@@ -188,6 +189,17 @@
                   const b=e.target.closest('button.redeem-btn'); if(!b || b.classList.contains('disabled')) return; const id=b.dataset.id; if(!confirm('Redeem this reward?')) return;
                   try { await rpcRedeem(id); await Promise.all([loadStats(), loadRewards()]); alert('Reward redeemed successfully!'); } catch(err){ alert('Failed to redeem: '+(err.message||err)); }
                 });
+              }
+
+              async function setupRealtime(){
+                try{
+                  const sb = await window.getSupabase();
+                  sb.channel('rewards-live')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'rewards' }, async (_payload)=>{
+                      await loadRewards();
+                    })
+                    .subscribe();
+                } catch {}
               }
 
               init();

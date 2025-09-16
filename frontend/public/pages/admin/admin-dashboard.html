@@ -4,213 +4,343 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CEREAL – Admin Dashboard</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="../../styles.css">
+  <link rel="stylesheet" href="./admin.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
-  <script src="/config.js"></script>
-  <script src="/supabase-client.js"></script>
-  <style>
-    .admin-container { max-width: 1400px; margin: 0 auto; padding: 20px; }
-    .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-    .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
-    .admin-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .admin-card h3 { margin: 0 0 15px 0; color: #333; }
-    .user-list, .reward-list { max-height: 400px; overflow-y: auto; }
-    .user-item, .reward-item { 
-      display: flex; justify-content: space-between; align-items: center; 
-      padding: 10px; border-bottom: 1px solid #eee; 
-    }
-    .user-info, .reward-info { flex: 1; }
-    .user-actions, .reward-actions { display: flex; gap: 5px; }
-    .btn-small { padding: 5px 10px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; }
-    .btn-primary { background: #007aff; color: white; }
-    .btn-secondary { background: #6c757d; color: white; }
-    .btn-danger { background: #dc3545; color: white; }
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
-    .modal-content { background: white; margin: 5% auto; padding: 20px; width: 80%; max-width: 500px; border-radius: 8px; }
-    .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-    .form-group input, .form-group select, .form-group textarea { 
-      width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; 
-    }
-  </style>
+  <script src="../../config.js"></script>
+  <script src="../../supabase-client.js"></script>
+  
 </head>
 <body>
-  <div class="admin-container">
-    <div class="admin-header">
-      <h1>Admin Dashboard</h1>
-      <div>
-        <a href="../user-dashboard.html" class="btn btn-secondary">View as User</a>
-        <button onclick="logout()" class="btn btn-danger">Logout</button>
+  <div class="toast-wrap" id="toasts"></div>
+  <div class="admin-shell">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <span class="badge"><img src="../../icons/admin-logo.png" alt="admin" width="16"> Admin Dashboard</span>
+      </div>
+      <div class="topbar-right" style="display:flex; gap:8px;">
+        <a href="../user-dashboard.html" class="btn btn-secondary btn-icon"><img src="../../icons/profile-icon.png" width="16"> View as User</a>
+        <button onclick="logout()" class="btn btn-danger btn-icon"><img src="../../icons/eye.png" width="16"> Logout</button>
       </div>
     </div>
 
-    <div class="admin-grid">
-      <!-- Users Management -->
-      <div class="admin-card">
-        <h3>Users Management</h3>
-        <div class="user-list" id="userList"></div>
-        <button onclick="openAddUserModal()" class="btn btn-primary" style="margin-top: 10px;">Add User Points</button>
-      </div>
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi"><div class="icon"><img src="../../icons/users.png" width="20"></div><div class="meta"><span class="label">Total Users</span><span class="value" id="totalUsers">#</span></div></div>
+      <div class="kpi"><div class="icon"><img src="../../icons/points.png" width="20"></div><div class="meta"><span class="label">Points Distributed</span><span class="value" id="totalPoints">#</span></div></div>
+      <div class="kpi"><div class="icon"><img src="../../icons/shop.png" width="20"></div><div class="meta"><span class="label">Shop Items</span><span class="value" id="totalRewards">#</span></div></div>
+      <div class="kpi"><div class="icon"><img src="../../icons/overview.png" width="20"></div><div class="meta"><span class="label">Monthly Growth</span><span class="delta positive" id="monthlyGrowth">+0%</span></div></div>
+    </div>
 
-      <!-- Rewards Management -->
-      <div class="admin-card">
-        <h3>Rewards Management</h3>
-        <div class="reward-list" id="rewardList"></div>
-        <button onclick="openAddRewardModal()" class="btn btn-primary" style="margin-top: 10px;">Add Reward</button>
-      </div>
-
-      <!-- Statistics -->
-      <div class="admin-card">
-        <h3>Statistics</h3>
-        <div id="statsContainer">
-          <p>Total Users: <span id="totalUsers">-</span></p>
-          <p>Total Rewards: <span id="totalRewards">-</span></p>
-          <p>Total Points Awarded: <span id="totalPoints">-</span></p>
-          <p>Recent Claims: <span id="recentClaims">-</span></p>
+    <!-- Main -->
+    <div class="main-grid">
+      <!-- Points Management -->
+      <div class="card">
+        <h2>Points Management</h2>
+        <div class="form-row">
+          <div class="form-col">
+            <label for="userSelect">Select User</label>
+            <select id="userSelect"></select>
+          </div>
+          <div class="form-col">
+            <label for="pointsDelta">Points Amount</label>
+            <input type="number" id="pointsDelta" placeholder="Enter points">
+          </div>
+          <div class="form-col">
+            <label for="pointsAction">Action</label>
+            <select id="pointsAction">
+              <option value="add">Add Points</option>
+              <option value="remove">Remove Points</option>
+            </select>
+          </div>
         </div>
+        <div class="form-row">
+          <div class="form-col" style="grid-column:1/-1;">
+            <label for="userScan">Scan / Type User</label>
+            <input type="text" id="userScan" list="userScanList" placeholder="Scan RFID or type name/email">
+            <datalist id="userScanList"></datalist>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-col" style="grid-column:1/-1;">
+            <label for="pointsReason">Reason</label>
+            <input type="text" id="pointsReason" placeholder="Optional reason for points adjustment">
+          </div>
+        </div>
+        <button id="updatePointsBtn" class="btn btn-primary btn-icon"><img src="../../icons/points.png" width="16"> Update Points</button>
+      </div>
+
+      <!-- Shop Management -->
+      <div class="card">
+        <h2>Shop Management</h2>
+        <div class="form-row">
+          <div class="form-col"><label for="rewardName">Item Name</label><input type="text" id="rewardName" placeholder="Enter item name"></div>
+          <div class="form-col"><label for="rewardCost">Price (Points)</label><input type="number" id="rewardCost" value="100"></div>
+          <div class="form-col"><label for="rewardStock">Stock Quantity</label><input type="number" id="rewardStock" value="50"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-col" style="grid-column:1/-1;"><label for="rewardDescription">Description</label><input type="text" id="rewardDescription" placeholder="Item description"></div>
+        </div>
+        <div class="form-row" style="grid-template-columns: 1fr 1fr;">
+          <button id="addItemBtn" class="btn btn-primary btn-icon btn-block"><img src="../../icons/add.png" width="16"> Add Item</button>
+          <button id="removeStockBtn" class="btn btn-secondary btn-icon btn-block"><img src="../../icons/minus.png" width="16"> Remove Stock</button>
+        </div>
+      </div>
+
+      <!-- Users & Enrollment (Unified) -->
+      <div class="card" style="grid-column:1/-1;">
+        <h2>Users</h2>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+          <input id="userSearch" class="search-input" placeholder="Search users by name or email">
+        </div>
+        <div class="table users" id="usersTable">
+          <div class="thead">
+            <div class="cell">Name</div>
+            <div class="cell">Email</div>
+            <div class="cell">Role</div>
+            <div class="cell">Points</div>
+            <div class="cell">RFID</div>
+            <div class="cell">Actions</div>
+          </div>
+          <div id="usersBody"></div>
+        </div>
+      </div>
+
+      
+
+      <!-- Recent Activity -->
+      <div class="card" style="grid-column:1/-1;">
+        <h2>Recent Activity</h2>
+        <div class="activity" id="activity"></div>
       </div>
     </div>
   </div>
 
-  <!-- Add Points Modal -->
-  <div id="addPointsModal" class="modal">
-    <div class="modal-content">
-      <h3>Adjust User Points</h3>
-      <form id="addPointsForm">
-        <div class="form-group">
-          <label>User:</label>
-          <select id="userSelect" required></select>
-        </div>
-        <div class="form-group">
-          <label>Points Change:</label>
-          <input type="number" id="pointsDelta" required placeholder="Enter positive or negative number">
-        </div>
-        <div class="form-group">
-          <label>Reason:</label>
-          <input type="text" id="pointsReason" placeholder="Optional reason">
-        </div>
-        <div style="display: flex; gap: 10px;">
-          <button type="submit" class="btn btn-primary">Update Points</button>
-          <button type="button" onclick="closeModal('addPointsModal')" class="btn btn-secondary">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Add Reward Modal -->
-  <div id="addRewardModal" class="modal">
-    <div class="modal-content">
-      <h3>Add New Reward</h3>
-      <form id="addRewardForm">
-        <div class="form-group">
-          <label>Name:</label>
-          <input type="text" id="rewardName" required>
-        </div>
-        <div class="form-group">
-          <label>Description:</label>
-          <textarea id="rewardDescription" rows="3"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Cost (points):</label>
-          <input type="number" id="rewardCost" required min="0">
-        </div>
-        <div class="form-group">
-          <label>Stock:</label>
-          <input type="number" id="rewardStock" required min="0">
-        </div>
-        <div class="form-group">
-          <label>Category:</label>
-          <select id="rewardCategory"></select>
-        </div>
-        <div style="display: flex; gap: 10px;">
-          <button type="submit" class="btn btn-primary">Add Reward</button>
-          <button type="button" onclick="closeModal('addRewardModal')" class="btn btn-secondary">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
+  
 
   <script type="module">
-  import { ensureSessionRedirect, listUsers, setUserRole } from '/js/services/users-service.js';
-  import { listAllRewards, createReward, toggleRewardActive } from '/js/services/rewards-service.js';
-  import { adminAdjustPoints, getRecentClaimsCount } from '/js/services/points-service.js';
-  import { selectTable, isMyEmailAdmin } from '/js/api-client.js';
-  import { logout as authLogout } from '/js/auth.js';
+  import { ensureSessionRedirect, listUsers, setUserRole, updateUserRfid } from '../../js/services/users-service.js';
+  import { createReward, updateRewardStock } from '../../js/services/rewards-service.js';
+    import { adminAdjustPoints, getRecentClaimsCount } from '../../js/services/points-service.js';
+    import { selectTable, isMyEmailAdmin } from '../../js/api-client.js';
+    import { logout as authLogout } from '../../js/auth.js';
 
     let currentUserId = null;
+    let cachedUsers = [];
+    let userFilter = '';
+  let userLabelIndex = new Map();
 
     async function initAdmin(){
-  const session = await ensureSessionRedirect({ redirectIf:true, target:'/index.html' });
+      const session = await ensureSessionRedirect({ redirectIf:true, target:'../../index.html' });
       if(!session) return; currentUserId = session.user.id;
-      const allowed = await isMyEmailAdmin();
-      if(!allowed){
-        document.body.innerHTML = '<div style="max-width:680px;margin:10vh auto;padding:24px;border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.1);font:16px system-ui;color:#222;">'+
-          '<h2 style="margin-top:0;color:#b00020;">Access denied</h2>'+
-          '<p>You are not an admin. If you believe this is a mistake, contact support.</p>'+
-          '<p><a href="../user-dashboard.html">Go to user dashboard</a> or <a href="../../index.html">sign out</a>.</p>'+
-        '</div>';
-        return;
+      if(!(await isMyEmailAdmin())){ location.href = '../user-dashboard.html'; return; }
+      await Promise.all([renderUsersTable(), renderStats(), renderActivity()]);
+      wireHandlers();
+    }
+
+    function wireHandlers(){
+      document.getElementById('updatePointsBtn').addEventListener('click', onUpdatePoints);
+      document.getElementById('addItemBtn').addEventListener('click', onAddItem);
+      document.getElementById('removeStockBtn').addEventListener('click', onRemoveStock);
+  document.getElementById('userSearch').addEventListener('input', (e)=>{ userFilter = (e.target.value||'').toLowerCase(); renderUsersTable(); });
+      const userScan = document.getElementById('userScan');
+      userScan.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); handleUserScan(userScan.value); }});
+      userScan.addEventListener('change', ()=> handleUserScan(userScan.value));
+      window.logout = async ()=>{ await authLogout({ redirect:true, to:'../../index.html' }); };
+    }
+
+    async function renderUsersTable(){
+      cachedUsers = await listUsers();
+      const sel = document.getElementById('userSelect'); sel.innerHTML = '<option value="">Select a user</option>';
+      cachedUsers.forEach(u=>{ const o=document.createElement('option'); o.value=u.id; o.textContent = `${u.name||u.email} (${u.points} pts)`; sel.appendChild(o); });
+      // Populate scan/type suggestions
+      userLabelIndex = new Map();
+      const dl = document.getElementById('userScanList'); dl.innerHTML='';
+      cachedUsers.forEach(u=>{
+        const label = [u.name||'', u.email?`<${u.email}>`:'' , u.rfid_uid?`[${u.rfid_uid}]`:'' ].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
+        if(label){ const opt=document.createElement('option'); opt.value = label; dl.appendChild(opt); userLabelIndex.set(label, u.id); }
+      });
+      const body = document.getElementById('usersBody'); body.innerHTML='';
+      const toRender = cachedUsers.filter(u=> !userFilter || (String(u.name||'').toLowerCase().includes(userFilter) || String(u.email||'').toLowerCase().includes(userFilter)) );
+      toRender.forEach(u=>{
+        const row = document.createElement('div'); row.className = 'row'; row.dataset.id = u.id;
+        row.innerHTML = `
+          <div class="cell">${escapeHtml(u.name||'—')}</div>
+          <div class="cell">${escapeHtml(u.email||'')}</div>
+          <div class="cell"><span class="pill" data-role="${u.role}">${escapeHtml(u.role||'user')}</span></div>
+          <div class="cell">${(u.points||0).toLocaleString()}</div>
+          <div class="cell"><input class="rfid-input" value="${u.rfid_uid?escapeHtml(u.rfid_uid):''}" placeholder="Scan or type..." /></div>
+          <div class="cell">
+            <div class="inline-controls">
+              <button class="btn btn-secondary btn-xxs" data-act="role" data-role="${u.role==='admin'?'user':'admin'}">${u.role==='admin'?'Remove Admin':'Make Admin'}</button>
+              <button class="icon-btn" title="-10 pts" data-act="delta" data-delta="-10">−10</button>
+              <button class="icon-btn" title="+10 pts" data-act="delta" data-delta="10">+10</button>
+              <button class="btn btn-primary btn-xxs" data-act="save-rfid">Save RFID</button>
+            </div>
+          </div>
+        `;
+        body.appendChild(row);
+      });
+      // Event delegation for row actions
+      document.getElementById('usersTable').onclick = async (e)=>{
+        const row = e.target.closest('.row'); if(!row) return; const userId = row.dataset.id;
+        const actBtn = e.target.closest('[data-act]'); if(!actBtn) return;
+        const act = actBtn.dataset.act;
+        try{
+          if(act === 'role'){
+            await setUserRole(userId, actBtn.dataset.role);
+            toast('Role updated','success');
+          } else if(act === 'delta'){
+            const delta = parseInt(actBtn.dataset.delta||'0',10); if(!delta) return;
+            await adminAdjustPoints({ userId, delta, reason: 'Quick adjust' });
+            toast(`Points ${delta>0? 'added':'removed'}`,'success');
+          } else if(act === 'save-rfid'){
+            const val = row.querySelector('.rfid-input').value;
+            await updateUserRfid(userId, val);
+            toast('RFID saved','success');
+          }
+        } finally {
+          await Promise.all([renderUsersTable(), renderStats(), renderActivity()]);
+        }
+      };
+    }
+
+    async function onUpdatePoints(){
+      const userId = document.getElementById('userSelect').value;
+      const amount = parseInt(document.getElementById('pointsDelta').value||'0',10);
+      const isRemove = document.getElementById('pointsAction').value === 'remove';
+      const delta = isRemove ? -Math.abs(amount) : Math.abs(amount);
+      const reason = document.getElementById('pointsReason').value;
+      if(!userId || !amount) return alert('Select a user and enter points');
+      await adminAdjustPoints({ userId, delta, reason });
+  await Promise.all([renderUsersTable(), renderStats(), renderActivity()]);
+      document.getElementById('pointsDelta').value = '';
+      document.getElementById('pointsReason').value = '';
+    }
+
+    function handleUserScan(raw){
+      const q = String(raw||'').trim(); if(!q) return;
+      // 1) Exact RFID match
+      let match = cachedUsers.find(u=> (u.rfid_uid||'').toLowerCase() === q.toLowerCase());
+      // 2) Exact email
+      if(!match) match = cachedUsers.find(u=> (u.email||'').toLowerCase() === q.toLowerCase());
+      // 3) Exact label from datalist
+      if(!match && userLabelIndex.has(q)){
+        const id = userLabelIndex.get(q); match = cachedUsers.find(u=> u.id === id);
       }
-      await Promise.all([renderUsers(), renderRewards(), renderStats(), loadCategories()]);
+      // 4) Partial name/email contains
+      if(!match){
+        const lc = q.toLowerCase();
+        const candidates = cachedUsers.filter(u=>
+          (u.name&&u.name.toLowerCase().includes(lc)) || (u.email&&u.email.toLowerCase().includes(lc)) || (u.rfid_uid&&u.rfid_uid.toLowerCase().includes(lc))
+        );
+        if(candidates.length>0) match = candidates[0];
+      }
+      if(match){
+        const sel = document.getElementById('userSelect'); sel.value = match.id;
+        toast(`Selected ${match.name||match.email}`,'success');
+      } else {
+        toast('No matching user','error');
+      }
     }
 
-    async function renderUsers(){
-      const data = await listUsers();
-      const userList = document.getElementById('userList'); const userSelect = document.getElementById('userSelect');
-      userList.innerHTML=''; userSelect.innerHTML='<option value="">Select a user</option>';
-      data.forEach(user=>{ const div=document.createElement('div'); div.className='user-item'; div.innerHTML=`<div class="user-info"><strong>${user.name||'Unknown'}</strong><br><small>${user.email||'No email'} • ${user.points} pts • ${user.role}</small></div><div class="user-actions"><button class="btn-small btn-primary" data-act="role" data-id="${user.id}" data-role="${user.role==='admin'?'user':'admin'}">${user.role==='admin'?'Remove Admin':'Make Admin'}</button></div>`; userList.appendChild(div); const opt=document.createElement('option'); opt.value=user.id; opt.textContent=`${user.name||user.email} (${user.points} pts)`; userSelect.appendChild(opt); });
-      userList.addEventListener('click', async e=>{ const btn=e.target.closest('button[data-act="role"]'); if(!btn) return; await setUserRole(btn.dataset.id, btn.dataset.role); await renderUsers(); }, { once:true });
+    // No categories for shop items per spec
+
+    
+
+    async function onAddItem(){
+      const name = document.getElementById('rewardName').value.trim();
+      const description = document.getElementById('rewardDescription').value.trim();
+      const cost = parseInt(document.getElementById('rewardCost').value||'0',10);
+      const stock = parseInt(document.getElementById('rewardStock').value||'0',10);
+      if(!name) return alert('Enter item name');
+      await createReward({ name, description, cost, stock });
+  await Promise.all([renderStats(), renderActivity(), renderUsersTable()]);
+      document.getElementById('rewardName').value=''; document.getElementById('rewardDescription').value='';
+      toast('Item added','success');
     }
 
-    async function renderRewards(){
-      const rewards = await listAllRewards();
-      const rewardList=document.getElementById('rewardList'); rewardList.innerHTML='';
-      rewards.forEach(r=>{ const div=document.createElement('div'); div.className='reward-item'; div.innerHTML=`<div class="reward-info"><strong>${r.name}</strong><br><small>${r.cost} pts • Stock: ${r.stock} • ${r.active?'Active':'Inactive'}</small></div><div class="reward-actions"><button class="btn-small btn-secondary" data-act="toggle" data-id="${r.id}" data-active="${!r.active}">${r.active?'Deactivate':'Activate'}</button></div>`; rewardList.appendChild(div); });
-      rewardList.addEventListener('click', async e=>{ const btn=e.target.closest('button[data-act="toggle"]'); if(!btn) return; await toggleRewardActive(btn.dataset.id, btn.dataset.active==='true'); await renderRewards(); }, { once:true });
+    async function onRemoveStock(){
+      const id = prompt('Enter Reward ID to decrement stock:');
+      if(!id) return;
+      const delta = -Math.abs(parseInt(prompt('How many to remove?')||'0',10));
+      if(!delta) return;
+      await updateRewardStock(id, delta);
+      await Promise.all([renderStats(), renderActivity()]);
+      toast('Stock updated','success');
     }
 
     async function renderStats(){
-      const [profiles, rewards, claimsCount, transactions] = await Promise.all([
-        selectTable({ table:'profiles', columns:'id' , limit:1000 }),
-        selectTable({ table:'rewards', columns:'id' , limit:500 }),
-        getRecentClaimsCount(7),
-        selectTable({ table:'point_transactions', columns:'amount', limit:1000 })
+      const sb = await window.getSupabase();
+      const [usersCountRes, sumPointsRes, rewardsCountRes, transactions] = await Promise.all([
+        sb.from('profiles').select('id', { count: 'exact', head: true }),
+        sb.from('profiles').select('sum(points)'),
+        sb.from('rewards').select('id', { count: 'exact', head: true }),
+        selectTable({ table:'point_transactions', columns:'amount,created_at', limit:5000 })
       ]);
-      document.getElementById('totalUsers').textContent = profiles.length;
-      document.getElementById('totalRewards').textContent = rewards.length;
-      document.getElementById('recentClaims').textContent = claimsCount;
-      const totalPts = transactions.reduce((s,t)=> t.amount>0? s+t.amount:s,0); document.getElementById('totalPoints').textContent = totalPts.toLocaleString();
+      const usersCount = usersCountRes?.count ?? 0;
+      const sumPoints = Array.isArray(sumPointsRes?.data) ? (sumPointsRes.data[0]?.sum ?? 0) : 0;
+      const shopItems = rewardsCountRes?.count ?? 0;
+
+      document.getElementById('totalUsers').textContent = usersCount.toLocaleString();
+      document.getElementById('totalPoints').textContent = Number(sumPoints||0).toLocaleString();
+      const totalRewardsEl = document.getElementById('totalRewards'); if(totalRewardsEl) totalRewardsEl.textContent = shopItems.toLocaleString();
+      // Month-over-month growth (last 30 days vs previous 30 days)
+      const now = Date.now();
+      const day = 24*60*60*1000;
+      const startCurr = now - 30*day;
+      const startPrev = now - 60*day;
+  const curr = transactions.reduce((s,t)=>{ const ts=Date.parse(t.created_at||''); return (t.amount>0 && ts>=startCurr)? s+t.amount:s; },0);
+  const prev = transactions.reduce((s,t)=>{ const ts=Date.parse(t.created_at||''); return (t.amount>0 && ts<startCurr && ts>=startPrev)? s+t.amount:s; },0);
+      const growth = prev>0? ((curr - prev)/prev)*100 : (curr>0? 100 : 0);
+      const fmt = (growth>=0? '+' : '') + Math.round(growth).toString() + '%';
+      const el = document.getElementById('monthlyGrowth');
+      el.textContent = fmt; el.classList.toggle('positive', growth>=0); el.classList.toggle('negative', growth<0);
     }
 
-    async function loadCategories(){
-      const rows = await selectTable({ table:'reward_categories', columns:'id,name', limit:200, order:{ column:'name', asc:true } });
-      const sel = document.getElementById('rewardCategory'); sel.innerHTML='<option value="">No Category</option>'; rows.forEach(c=>{ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); });
+    async function renderEnrollment(){
+      // Show full profiles table (email, points, rfid_uid if available)
+      const body = document.getElementById('enrollmentBody'); body.innerHTML='';
+      let rows = [];
+      try {
+        rows = await selectTable({ table:'profiles', columns:'email,points,rfid_uid', order:{ column:'email', asc:true }, limit:1000 });
+      } catch (e){
+        // Fallback for older schema without rfid_uid
+        rows = await selectTable({ table:'profiles', columns:'email,points', order:{ column:'email', asc:true }, limit:1000 });
+        rows = (rows||[]).map(r=>({ ...r, rfid_uid: null }));
+      }
+      (rows||[]).forEach(r=>{
+        const row=document.createElement('div'); row.className='row';
+        row.innerHTML = `
+          <div class="cell">${escapeHtml(r.email||'')}</div>
+          <div class="cell">${(r.points||0).toLocaleString()}</div>
+          <div class="cell">${escapeHtml(r.rfid_uid||'—')}</div>
+        `;
+        body.appendChild(row);
+      });
     }
 
-    // Modals
-    window.openAddUserModal = ()=> document.getElementById('addPointsModal').style.display='block';
-    window.openAddRewardModal = ()=> document.getElementById('addRewardModal').style.display='block';
-    window.closeModal = id => document.getElementById(id).style.display='none';
+    async function renderActivity(){
+      // Unified activity feed via RPC (logs, transactions, claims, recycling)
+      const sb = await window.getSupabase();
+      const { data, error } = await sb.rpc('activity_feed', { limit_count: 20 });
+      if(error){ console.error(error); return; }
+      const rows = data || [];
+      const el = document.getElementById('activity'); el.innerHTML='';
+      rows.forEach(r=>{
+        const row=document.createElement('div'); row.className='row';
+        row.innerHTML = `<div style="display:flex;align-items:center;gap:10px;"><img src="../../icons/profile-icon.png" width="20"><div>${escapeHtml(r.message||'')}</div></div><div class="pill">${escapeHtml(r.action_type||'info')}</div>`;
+        el.appendChild(row);
+      });
+    }
 
-    // Forms
-    document.getElementById('addPointsForm').addEventListener('submit', async e=>{
-      e.preventDefault();
-      const userId = document.getElementById('userSelect').value; const delta=parseInt(document.getElementById('pointsDelta').value); const reason=document.getElementById('pointsReason').value;
-      await adminAdjustPoints({ userId, delta, reason });
-      window.closeModal('addPointsModal'); await Promise.all([renderUsers(), renderStats()]);
-    });
-
-    document.getElementById('addRewardForm').addEventListener('submit', async e=>{
-      e.preventDefault();
-      const name=document.getElementById('rewardName').value; const description=document.getElementById('rewardDescription').value; const cost=parseInt(document.getElementById('rewardCost').value); const stock=parseInt(document.getElementById('rewardStock').value); const category=document.getElementById('rewardCategory').value||null;
-      await createReward({ name, description, cost, stock, category });
-      window.closeModal('addRewardModal'); await Promise.all([renderRewards(), renderStats()]);
-    });
-
-  window.logout = async ()=>{ await authLogout({ redirect:true, to:'/index.html' }); };
-
-    // Close modals on outside click
-    window.onclick = e => { document.querySelectorAll('.modal').forEach(m=>{ if(e.target===m) m.style.display='none'; }); };
+    function escapeHtml(str){ return (str||'').replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]||c)); }
+    function toast(msg,type='info'){
+      const host=document.getElementById('toasts');
+      const d=document.createElement('div'); d.className=`toast ${type==='error'?'error':(type==='success'?'success':'')}`; d.textContent=msg; host.appendChild(d);
+      setTimeout(()=>{ d.style.opacity='0'; d.style.transform='translateY(8px)'; d.style.transition='all .2s ease'; setTimeout(()=>host.removeChild(d), 200); }, 1800);
+    }
 
     initAdmin();
   </script>

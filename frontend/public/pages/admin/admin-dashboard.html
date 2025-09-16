@@ -126,6 +126,9 @@
     import { selectTable, isMyEmailAdmin } from '../../js/api-client.js';
     import { logout as authLogout } from '../../js/auth.js';
 
+    // Ensure logout is always available for inline onclick, even if init fails
+    window.logout = async ()=>{ try { await authLogout({ redirect:true, to:'../../index.html' }); } catch(e) { console.error(e); } };
+
     let currentUserId = null;
     let cachedUsers = [];
     let userFilter = '';

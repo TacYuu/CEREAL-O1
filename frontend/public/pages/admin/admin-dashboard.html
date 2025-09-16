@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CEREAL – Admin Dashboard</title>
-  <link rel="stylesheet" href="../../styles.css">
+  <link rel="stylesheet" href="/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
-  <script src="../../config.js"></script>
-  <script src="../../supabase-client.js"></script>
+  <script src="/config.js"></script>
+  <script src="/supabase-client.js"></script>
   <style>
     .admin-container { max-width: 1400px; margin: 0 auto; padding: 20px; }
     .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
@@ -131,16 +131,16 @@
   </div>
 
   <script type="module">
-  import { ensureSessionRedirect, listUsers, setUserRole } from '../../js/services/users-service.js';
-    import { listAllRewards, createReward, toggleRewardActive } from '../../js/services/rewards-service.js';
-    import { adminAdjustPoints, getRecentClaimsCount } from '../../js/services/points-service.js';
-    import { selectTable, isMyEmailAdmin } from '../../js/api-client.js';
-  import { logout as authLogout } from '../../js/auth.js';
+  import { ensureSessionRedirect, listUsers, setUserRole } from '/js/services/users-service.js';
+  import { listAllRewards, createReward, toggleRewardActive } from '/js/services/rewards-service.js';
+  import { adminAdjustPoints, getRecentClaimsCount } from '/js/services/points-service.js';
+  import { selectTable, isMyEmailAdmin } from '/js/api-client.js';
+  import { logout as authLogout } from '/js/auth.js';
 
     let currentUserId = null;
 
     async function initAdmin(){
-      const session = await ensureSessionRedirect({ redirectIf:true, target:'../../index.html' });
+  const session = await ensureSessionRedirect({ redirectIf:true, target:'/index.html' });
       if(!session) return; currentUserId = session.user.id;
       const allowed = await isMyEmailAdmin();
       if(!allowed){
@@ -207,7 +207,7 @@
       window.closeModal('addRewardModal'); await Promise.all([renderRewards(), renderStats()]);
     });
 
-  window.logout = async ()=>{ await authLogout({ redirect:true, to:'../../index.html' }); };
+  window.logout = async ()=>{ await authLogout({ redirect:true, to:'/index.html' }); };
 
     // Close modals on outside click
     window.onclick = e => { document.querySelectorAll('.modal').forEach(m=>{ if(e.target===m) m.style.display='none'; }); };

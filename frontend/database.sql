@@ -208,51 +208,68 @@ alter table public.recycling_logs enable row level security;
 alter table public.earning_opportunities enable row level security;
 
 -- Profiles: users can read themselves; admins can read all; users can update themselves (name, avatar)
-create policy if not exists profiles_select_self on public.profiles for select using (
+drop policy if exists profiles_select_self on public.profiles;
+create policy profiles_select_self on public.profiles for select using (
   id = auth.uid() or exists(select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
 );
-create policy if not exists profiles_update_self on public.profiles for update using (id = auth.uid()) with check (id = auth.uid());
+drop policy if exists profiles_update_self on public.profiles;
+create policy profiles_update_self on public.profiles for update using (id = auth.uid()) with check (id = auth.uid());
 -- Admins can update any profile (e.g., role changes)
-create policy if not exists profiles_admin_update on public.profiles for update using (
+drop policy if exists profiles_admin_update on public.profiles;
+create policy profiles_admin_update on public.profiles for update using (
   exists(select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
 ) with check (
   exists(select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
 );
 
 -- Rewards and categories are readable by everyone; only admins can write
-create policy if not exists rewards_read_all on public.rewards for select using (true);
-create policy if not exists rewards_write_admin on public.rewards for all using (
+drop policy if exists rewards_read_all on public.rewards;
+create policy rewards_read_all on public.rewards for select using (true);
+drop policy if exists rewards_write_admin on public.rewards;
+create policy rewards_write_admin on public.rewards for all using (
   exists(select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
 );
-create policy if not exists reward_categories_read_all on public.reward_categories for select using (true);
-create policy if not exists reward_categories_write_admin on public.reward_categories for all using (
+drop policy if exists reward_categories_read_all on public.reward_categories;
+create policy reward_categories_read_all on public.reward_categories for select using (true);
+drop policy if exists reward_categories_write_admin on public.reward_categories;
+create policy reward_categories_write_admin on public.reward_categories for all using (
   exists(select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
 );
 
 -- Claims & transactions: users read own; insert via RPC/flows
-create policy if not exists claims_read_own on public.reward_claims for select using (user_id = auth.uid());
-create policy if not exists tx_read_own on public.point_transactions for select using (user_id = auth.uid());
+drop policy if exists claims_read_own on public.reward_claims;
+create policy claims_read_own on public.reward_claims for select using (user_id = auth.uid());
+drop policy if exists tx_read_own on public.point_transactions;
+create policy tx_read_own on public.point_transactions for select using (user_id = auth.uid());
 -- Admins read all transactions and claims
-create policy if not exists tx_read_admin on public.point_transactions for select using (
+drop policy if exists tx_read_admin on public.point_transactions;
+create policy tx_read_admin on public.point_transactions for select using (
   exists(select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
 );
-create policy if not exists claims_read_admin on public.reward_claims for select using (
+drop policy if exists claims_read_admin on public.reward_claims;
+create policy claims_read_admin on public.reward_claims for select using (
   exists(select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
 );
 
 -- Logs: users read own
-create policy if not exists logs_read_own on public.logs for select using (user_id = auth.uid());
-create policy if not exists logs_read_admin on public.logs for select using (
+drop policy if exists logs_read_own on public.logs;
+create policy logs_read_own on public.logs for select using (user_id = auth.uid());
+drop policy if exists logs_read_admin on public.logs;
+create policy logs_read_admin on public.logs for select using (
   exists(select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
 );
 
 -- Recycling logs: users can insert their own and read own
-create policy if not exists recycling_insert_own on public.recycling_logs for insert with check (user_id = auth.uid());
-create policy if not exists recycling_read_own on public.recycling_logs for select using (user_id = auth.uid());
+drop policy if exists recycling_insert_own on public.recycling_logs;
+create policy recycling_insert_own on public.recycling_logs for insert with check (user_id = auth.uid());
+drop policy if exists recycling_read_own on public.recycling_logs;
+create policy recycling_read_own on public.recycling_logs for select using (user_id = auth.uid());
 
 -- Earning opportunities readable by all
-create policy if not exists earning_ops_read_all on public.earning_opportunities for select using (true);
-create policy if not exists earning_ops_write_admin on public.earning_opportunities for all using (
+drop policy if exists earning_ops_read_all on public.earning_opportunities;
+create policy earning_ops_read_all on public.earning_opportunities for select using (true);
+drop policy if exists earning_ops_write_admin on public.earning_opportunities;
+create policy earning_ops_write_admin on public.earning_opportunities for all using (
   exists(select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
 );
 

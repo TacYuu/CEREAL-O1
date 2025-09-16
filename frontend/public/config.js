@@ -14,9 +14,20 @@
       if(!url || !anonKey) throw new Error('Incomplete Supabase config');
       cache.cfg = { url, anonKey };
     } catch {
-      const url = window.NEXT_PUBLIC_SUPABASE_URL || window.SUPABASE_URL;
-      const anonKey = window.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.SUPABASE_ANON_KEY;
-      if(!url || !anonKey) throw new Error('Supabase config missing. Ensure Vercel integration or expose NEXT_PUBLIC_SUPABASE_*');
+      // Try optional static JSON fallback first
+      try {
+        const r2 = await fetch('/supabase.json', { cache:'no-store' });
+        if(r2.ok){
+          const { url, anonKey } = await r2.json();
+          if(url && anonKey){ cache.cfg = { url, anonKey }; window.SUPABASE_URL=url; window.SUPABASE_ANON_KEY=anonKey; return cache.cfg; }
+        }
+      } catch {}
+      // Fallbacks: meta tags, then window globals
+      const metaUrl = (typeof document!=='undefined' && document.querySelector('meta[name="supabase-url"]'))?.content;
+      const metaAnon = (typeof document!=='undefined' && document.querySelector('meta[name="supabase-anon-key"]'))?.content;
+      const url = metaUrl || window.NEXT_PUBLIC_SUPABASE_URL || window.SUPABASE_URL;
+      const anonKey = metaAnon || window.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.SUPABASE_ANON_KEY;
+      if(!url || !anonKey) throw new Error('Supabase config missing. Ensure Vercel integration has NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, or add /supabase.json, or add <meta name="supabase-url"> & <meta name="supabase-anon-key"> tags.');
       cache.cfg = { url, anonKey };
     }
     // expose globals for optional direct use

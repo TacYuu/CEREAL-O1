@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CEREAL – Dashboard</title>
+  <link rel="stylesheet" href="../styles.css">
+  <!-- Supabase library + config + client bootstrap -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+  <script src="../config.js"></script>
+  <script src="../supabase-client.js"></script>
+  <script type="module" src="../js/auth.js"></script>
+  <style>
+        body {
+            background: linear-gradient(135deg, #f5f6fa 0%, #e9ecef 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 18px 32px 18px;
+        }
+        .dashboard-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 28px 0 18px 0;
+        }
+        .dashboard-logo {
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            font-size: 1.3rem;
+            gap: 10px;
+            letter-spacing: -0.5px;
+            color: #222;
+        }
+        .dashboard-logo-square {
+            width: 28px;
+            height: 28px;
+            background: #007aff;
+            border-radius: 8px;
+            margin-right: 8px;
+            box-shadow: 0 2px 8px rgba(0,122,255,0.10);
+        }
+        .dashboard-user-points {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f1f2f6;
+            border-radius: 14px;
+            padding: 8px 18px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #007aff;
+            box-shadow: 0 1.5px 4px 0 rgba(0,0,0,0.04);
+            position: relative;
+        }
+        .dashboard-user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-left: 8px;
+            box-shadow: 0 1.5px 4px 0 rgba(0,0,0,0.04);
+        }
+        .dashboard-welcome h1 {
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: #222;
+            margin-bottom: 0.2em;
+        }
+        .dashboard-welcome p {
+            color: #888;
+            font-size: 1.08rem;
+            margin-bottom: 1.2rem;
+        }
+        .dashboard-row {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        .dashboard-col {
+            flex: 1 1 0;
+            min-width: 320px;
+        }
+        .dashboard-card {
+            background: rgba(255,255,255,0.92);
+            border-radius: 18px;
+            border: none;
+            padding: 24px;
+            margin-bottom: 18px;
+            box-shadow: 0 8px 32px 0 rgba(60,60,60,0.07), 0 1.5px 4px 0 rgba(0,0,0,0.04);
+            transition: box-shadow 0.3s cubic-bezier(.4,0,.2,1), transform 0.18s;
+            animation: iosCardFadeIn 0.7s cubic-bezier(.4,0,.2,1);
+        }
+        .dashboard-card:hover {
+            box-shadow: 0 12px 36px 0 rgba(0,122,255,0.10), 0 2px 8px 0 rgba(0,0,0,0.06);
+            transform: translateY(-2px) scale(1.02);
+        }
+        @keyframes iosCardFadeIn {
+            from { opacity: 0; transform: translateY(24px) scale(0.98);}
+            to { opacity: 1; transform: translateY(0) scale(1);}
+        }
+        .points-overview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.1em;
+        }
+        .points-overview-title {
+            font-weight: 600;
+            color: #222;
+            font-size: 1.08rem;
+        }
+        .points-overview-select {
+            border: 1.5px solid #e0e0e0;
+            border-radius: 12px;
+            background: #f7f7fa;
+            font-size: 1.01rem;
+            padding: 0.5em 1em;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .points-overview-select:focus {
+            border-color: #007aff;
+            background: #fff;
+        }
+        .points-chart-placeholder {
+            background: #f1f2f6;
+            border-radius: 12px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #adb5bd;
+            font-size: 1.08rem;
+            margin-bottom: 1.2em;
+        }
+        .points-overview-stats {
+            display: flex;
+            gap: 18px;
+            margin-top: 1em;
+        }
+        .points-overview-stat {
+            flex: 1;
+            background: #f7f7fa;
+            border-radius: 12px;
+            padding: 1em 0.7em;
+            text-align: center;
+        }
+        .points-overview-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #007aff;
+        }
+        .points-overview-stat-label {
+            color: #888;
+            font-size: 0.97rem;
+        }
+        .quick-actions .btn {
+            width: 100%;
+            margin-bottom: 0.7em;
+        }
+        .btn {
+            width: 100%;
+            padding: 0.95rem 0;
+            border: none;
+            border-radius: 14px;
+            font-size: 1.08rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 1rem;
+            transition: background 0.18s, box-shadow 0.18s, transform 0.13s;
+            box-shadow: 0 1.5px 4px 0 rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5em;
+            position: relative;
+        }
+        .btn:disabled,
+        .btn[disabled] {
+            background: #e9ecef !important;
+            color: #b0b0b0 !important;
+            cursor: not-allowed;
+            opacity: 1;
+            box-shadow: none;
+            border: none;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #007aff 60%, #0051a8 100%);
+            color: #fff;
+        }
+        .btn-primary:active {
+            background: #0051a8;
+            transform: scale(0.98);
+        }
+        .btn-secondary {
+            background: #f1f2f6;
+            color: #222;
+        }
+        .btn-secondary:active {
+            background: #e2e3e8;
+            transform: scale(0.98);
+        }
+        .user-rank-card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 1.5px 4px 0 rgba(0,0,0,0.04);
+            padding: 1.2em 0.7em;
+            text-align: center;
+            margin-top: 1.2em;
+            animation: iosCardFadeIn 0.7s cubic-bezier(.4,0,.2,1);
+        }
+        .user-rank-icon {
+            font-size: 2.1rem;
+            margin-bottom: 0.2em;
+        }
+        .user-rank-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #007aff;
+        }
+        .user-rank-label {
+            color: #888;
+            font-size: 1.01rem;
+        }
+        .recommended-section {
+            margin-top: 2.2em;
+        }
+        .recommended-title {
+            font-size: 1.13rem;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 1em;
+        }
+        .recommended-list {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+        .recommended-card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 1.5px 4px 0 rgba(0,0,0,0.04);
+            padding: 1.2em 1em;
+            min-width: 220px;
+            flex: 1 1 220px;
+            max-width: 260px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            animation: iosCardFadeIn 0.7s cubic-bezier(.4,0,.2,1);
+        }
+        .recommended-img-placeholder {
+            background: #f1f2f6;
+            border-radius: 10px;
+            width: 100%;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #adb5bd;
+            font-size: 1.08rem;
+            margin-bottom: 0.7em;
+        }
+        .recommended-card-title {
+            font-weight: 600;
+            color: #222;
+            font-size: 1.05rem;
+            margin-bottom: 0.2em;
+        }
+        .recommended-card-desc {
+            color: #888;
+            font-size: 0.97rem;
+            margin-bottom: 0.5em;
+        }
+        .recommended-card-points {
+            color: #007aff;
+            font-weight: 600;
+            font-size: 1.01rem;
+            margin-bottom: 0.7em;
+        }
+        .recommended-card-actions .btn {
+            width: 100%;
+            margin-bottom: 0;
+        }
+        .dashboard-bottom-row {
+            display: flex;
+            gap: 24px;
+            margin-top: 2.5em;
+            flex-wrap: wrap;
+        }
+        .dashboard-bottom-col {
+            flex: 1 1 0;
+            min-width: 320px;
+        }
+        .activity-section, .earning-section {
+            background: rgba(255,255,255,0.92);
+            border-radius: 18px;
+            border: none;
+            padding: 24px;
+            margin-bottom: 18px;
+            box-shadow: 0 8px 32px 0 rgba(60,60,60,0.07), 0 1.5px 4px 0 rgba(0,0,0,0.04);
+            animation: iosCardFadeIn 0.7s cubic-bezier(.4,0,.2,1);
+        }
+        .activity-title, .earning-title {
+            font-size: 1.13rem;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 1em;
+        }
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            border-radius: 10px;
+            padding: 4px 0;
+            transition: background 0.18s;
+        }
+        .activity-item:hover {
+            background: #f1f2f6;
+        }
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f1f2f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: #007aff;
+            font-weight: 700;
+            box-shadow: 0 1.5px 4px 0 rgba(0,0,0,0.04);
+        }
+        .activity-details {
+            display: flex;
+            flex-direction: column;
+        }
+        .activity-text {
+            color: #222;
+            font-size: 1.01rem;
+            font-weight: 500;
+        }
+        .activity-time {
+            color: #adb5bd;
+            font-size: 0.95rem;
+        }
+        .earning-list {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .earning-item {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            background: #f7f7fa;
+            border-radius: 12px;
+            padding: 1em 0.7em;
+            box-shadow: 0 1.5px 4px 0 rgba(0,0,0,0.04);
+        }
+        .earning-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .earning-title-text {
+            font-weight: 600;
+            color: #222;
+            font-size: 1.05rem;
+        }
+        .earning-desc {
+            color: #888;
+            font-size: 0.97rem;
+        }
+        .earning-points {
+            color: #007aff;
+            font-weight: 600;
+            font-size: 1.01rem;
+            margin-right: 0.7em;
+        }
+        /* Leaderboard Modal Styles (iOS-like) */
+        .modal-overlay {
+            position: fixed;
+            z-index: 10000;
+            inset: 0;
+            background: rgba(60,60,60,0.32);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .leaderboard-modal {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            max-width: 480px;
+            width: 96vw;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: iosModalFadeIn 0.35s cubic-bezier(.4,0,.2,1);
+        }
+        @keyframes iosModalFadeIn {
+            from { opacity: 0; transform: translateY(40px) scale(0.98);}
+            to { opacity: 1; transform: translateY(0) scale(1);}
+        }
+        .leaderboard-modal-header {
+            padding: 22px 28px 12px 28px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            border-bottom: 1.5px solid #ececec;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #222;
+        }
+        .leaderboard-modal-close {
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            color: #888;
+            cursor: pointer;
+            margin-left: 12px;
+            border-radius: 50%;
+            transition: background 0.18s;
+        }
+        .leaderboard-modal-close:active {
+            background: #f1f2f6;
+        }
+        .leaderboard-tabs {
+            display: flex;
+            border-bottom: 1.5px solid #ececec;
+            background: #fafbfc;
+        }
+        .leaderboard-tab {
+            flex: 1;
+            padding: 12px 0;
+            text-align: center;
+            font-size: 1rem;
+            color: #888;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.12s, color 0.18s;
+            border-radius: 0;
+        }
+        .leaderboard-tab.active {
+            background: #fff;
+            color: #007aff;
+            border-bottom: 2.5px solid #007aff;
+            font-weight: 700;
+        }
+        .leaderboard-list {
+            padding: 0;
+            margin: 0;
+            list-style: none;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 28px;
+            border-bottom: 1.5px solid #f2f2f2;
+            background: #fff;
+            transition: background 0.18s;
+        }
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+        .leaderboard-item:hover {
+            background: #f1f2f6;
+        }
+        .leaderboard-rank {
+            width: 32px;
+            height: 32px;
+            background: #f3f3f3;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #007aff;
+            font-size: 1.1rem;
+        }
+        .leaderboard-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #f6f6f6;
+        }
+        .leaderboard-user-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .leaderboard-user-name {
+            font-weight: 600;
+            color: #222;
+            font-size: 1rem;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .leaderboard-user-handle {
+            color: #888;
+            font-size: 0.97rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .leaderboard-points {
+            text-align: right;
+            min-width: 70px;
+        }
+        .leaderboard-points-value {
+            font-weight: 700;
+            color: #007aff;
+            font-size: 1.08rem;
+        }
+        .leaderboard-points-label {
+            color: #adb5bd;
+            font-size: 0.93rem;
+        }
+        .leaderboard-trophy {
+            font-size: 1.2rem;
+            margin-left: 6px;
+        }
+        .leaderboard-modal-footer {
+            padding: 12px 18px 12px 18px;
+            background: #fafbfc;
+            font-size: 0.97rem;
+            color: #888;
+            text-align: center;
+            border-top: 1.5px solid #ececec;
+        }
+        /* Responsive adjustments */
+        @media (max-width: 900px) {
+            .dashboard-row, .dashboard-bottom-row, .recommended-list {
+                flex-direction: column;
+                gap: 0;
+            }
+            .dashboard-col, .dashboard-bottom-col, .recommended-card {
+                min-width: 0;
+                max-width: 100%;
+            }
+            .dashboard-container {
+                padding: 0 4px 18px 4px;
+            }
+        }
+        @media (max-width: 600px) {
+            .dashboard-container {
+                padding: 0 2px 10px 2px;
+            }
+            .dashboard-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            .dashboard-card,
+            .activity-section,
+            .earning-section {
+                padding: 12px 4px 10px 4px;
+            }
+            .leaderboard-modal {
+                max-width: 99vw;
+                min-width: 0;
+                padding: 0;
+            }
+            .leaderboard-modal-header,
+            .leaderboard-item {
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+        }
+        .profile-dropdown-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            margin-left: 8px;
+            border-radius: 50%;
+            cursor: pointer;
+            position: relative;
+            outline: none;
+            transition: background 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            min-width: 44px;
+            min-height: 44px;
+        }
+        .profile-chevron {
+            font-size: 1.3em;
+            color: #b0b0b0;
+            margin-left: 2px;
+            pointer-events: none;
+            user-select: none;
+            transition: transform 0.18s cubic-bezier(.4,0,.2,1);
+        }
+        .profile-dropdown-btn[aria-expanded="true"] .profile-chevron {
+            transform: rotate(90deg);
+        }
+        .profile-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 54px;
+            right: 0;
+            min-width: 170px;
+            background: rgba(255,255,255,0.85);
+            border-radius: 18px;
+            box-shadow: 0 12px 36px 0 rgba(0,0,0,0.13), 0 1.5px 4px 0 rgba(0,0,0,0.04);
+            z-index: 100;
+            padding: 0.5em 0 0.2em 0;
+            backdrop-filter: blur(16px);
+            border: 1.5px solid #e9ecef;
+            animation: iosDropdownFadeIn 0.28s cubic-bezier(.4,0,.2,1);
+            will-change: opacity, transform;
+        }
+        @keyframes iosDropdownFadeIn {
+            from { opacity: 0; transform: translateY(-10px) scale(0.98);}
+            to { opacity: 1; transform: translateY(0) scale(1);}
+        }
+        .profile-dropdown-menu.show {
+            display: block;
+        }
+        .profile-dropdown-divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 0.2em 0 0.2em 0;
+        }
+        .profile-dropdown-item {
+            width: 100%;
+            background: none;
+            border: none;
+            text-align: left;
+            padding: 1.1em 1.3em;
+            font-size: 1.07rem;
+            color: #222;
+            font-weight: 500;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.16s, color 0.16s;
+            outline: none;
+            display: flex;
+            align-items: center;
+            gap: 0.7em;
+        }
+        .profile-dropdown-item:active,
+        .profile-dropdown-item:focus {
+            background: #f1f2f6;
+        }
+        .profile-dropdown-logout {
+            color: #ff3b30;
+            font-weight: 600;
+            justify-content: flex-start;
+            margin-top: 0.1em;
+        }
+        .profile-dropdown-logout:active,
+        .profile-dropdown-logout:focus {
+            background: #ffeaea;
+            color: #b71c1c;
+        }
+        .profile-dropdown-logout-text {
+            flex: 1;
+            text-align: left;
+        }
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #ff3b30;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+            margin-left: 12px;
+        }
+        .logout-btn:hover {
+            background: rgba(255, 59, 48, 0.1);
+        }
+        @media (max-width: 600px) {
+            .profile-dropdown-menu {
+                right: 0;
+                left: auto;
+                min-width: 140px;
+            }
+        }
+    </style>
+</head>
+<body style="background:#fafbfc;">
+  <div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+      <div class="dashboard-logo">
+        <span class="dashboard-logo-square"></span>
+        CEREAL
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div class="dashboard-user-points" id="userPointsWrapper">
+          <span id="userPointsDisplay">— Points</span>
+          <button class="profile-dropdown-btn" id="profileDropdownBtn" aria-label="Account menu">
+            <img src="../icons/profile-icon.png" alt="User" class="dashboard-user-avatar" id="userAvatar">
+            <span class="profile-chevron">&#8250;</span>
+          </button>
+          <div class="profile-dropdown-menu" id="profileDropdownMenu" tabindex="-1" aria-label="Account menu">
+            <div style="padding:.8em 1.3em .4em; font-size:.85rem; color:#666; font-weight:500;" id="profileNameDisplay">Loading...</div>
+            <div class="profile-dropdown-divider"></div>
+            <button class="profile-dropdown-item profile-dropdown-logout" id="profileLogoutBtn">
+              <span class="profile-dropdown-logout-text">Logout</span>
+            </button>
+          </div>
+        </div>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+    <!-- Welcome -->
+    <div class="dashboard-welcome">
+      <h1 id="welcomeTitle">Welcome back!</h1>
+      <p id="welcomeSubtitle">Loading your data...</p>
+    </div>
+    <!-- Main Row -->
+    <div class="dashboard-row">
+      <div class="dashboard-col">
+        <div class="dashboard-card">
+          <div class="points-overview-header">
+            <span class="points-overview-title">Points Overview</span>
+            <select class="points-overview-select" id="pointsRangeSelect">
+              <option value="6m" selected>Last 6 months</option>
+              <option value="12m">Last 12 months</option>
+            </select>
+          </div>
+          <div class="points-chart-placeholder" id="pointsChartPlaceholder">
+            <span>Loading chart...</span>
+          </div>
+          <div class="points-overview-stats" id="pointsStats">
+            <div class="points-overview-stat">
+              <div class="points-overview-stat-value" id="statCurrentPoints">—</div>
+              <div class="points-overview-stat-label">Current Points</div>
+            </div>
+            <div class="points-overview-stat">
+              <div class="points-overview-stat-value" id="statMonthPoints">—</div>
+              <div class="points-overview-stat-label">This Month</div>
+            </div>
+            <div class="points-overview-stat">
+              <div class="points-overview-stat-value" id="statTotalEarned">—</div>
+              <div class="points-overview-stat-label">Total Earned</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="dashboard-col" style="max-width:340px;">
+        <div class="dashboard-card quick-actions">
+          <button class="btn btn-primary" id="btnOpenLeaderboard" style="margin-bottom:8px;">View Leaderboard</button>
+          <a href="user/redeemables.html" class="btn btn-secondary" id="btnRedeemPoints"><span style="margin-right:6px;">&#128722;</span>Redeem Points</a>
+        </div>
+        <div class="user-rank-card" id="userRankCard">
+          <div class="user-rank-icon" id="userRankIcon">🏅</div>
+            <div class="user-rank-value" id="userRankValue">—</div>
+            <div class="user-rank-label" id="userRankLabel">Ranking...</div>
+        </div>
+      </div>
+    </div>
+    <!-- Recommended Section -->
+    <div class="recommended-section">
+      <div class="recommended-title">Recommended for You</div>
+      <div class="recommended-list" id="recommendedList">
+        <!-- Populated dynamically -->
+      </div>
+      <div id="recommendedEmpty" style="color:#888; font-size:.9rem; margin-top:8px; display:none;">No rewards available.</div>
+    </div>
+    <!-- Bottom Row -->
+    <div class="dashboard-bottom-row">
+      <div class="dashboard-bottom-col">
+        <div class="activity-section">
+          <div class="activity-title">Recent Activity</div>
+          <div class="activity-list" id="activityList"></div>
+          <div id="activityEmptyState" style="color:#888; font-size:.9rem;">No recent activity.</div>
+        </div>
+      </div>
+      <div class="dashboard-bottom-col">
+        <div class="earning-section">
+          <div class="earning-title">Earning Opportunities</div>
+          <div class="earning-list" id="earningList"></div>
+          <div id="earningEmptyState" style="color:#888; font-size:.9rem;">No earning opportunities right now.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Leaderboard Modal -->
+  <div class="modal-overlay" id="leaderboard-modal-overlay">
+    <div class="leaderboard-modal" role="dialog" aria-modal="true" aria-labelledby="leaderboard-modal-title">
+      <div class="leaderboard-modal-header">
+        <span id="leaderboard-modal-title">Leaderboard</span>
+        <button class="leaderboard-modal-close" id="leaderboard-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="leaderboard-tabs">
+        <button class="leaderboard-tab active" data-tab="weekly">Weekly</button>
+        <button class="leaderboard-tab" data-tab="monthly">Monthly</button>
+        <button class="leaderboard-tab" data-tab="alltime">All Time</button>
+      </div>
+      <ul class="leaderboard-list" id="leaderboard-list"></ul>
+      <div class="leaderboard-modal-footer" id="leaderboard-modal-footer">Loading...</div>
+    </div>
+  </div>
+  <script>
+    const fmt = new Intl.NumberFormat();
+    let currentUserId = null; let sb=null;
+
+    async function getUser(){
+      sb = sb || await window.getSupabase(); if(!sb){ return; }
+      const { data, error } = await sb.auth.getUser();
+      if(error||!data?.user){ window.location.href='../index.html'; return null; }
+      currentUserId = data.user.id;
+      const name = data.user.user_metadata?.name || data.user.email || 'User';
+      document.getElementById('welcomeTitle').textContent = 'Welcome back, '+ name.split(' ')[0] + '!';
+      document.getElementById('profileNameDisplay').textContent = name;
+      document.getElementById('welcomeSubtitle').textContent = 'Track your points and discover new rewards';
+      return data.user;
+    }
+
+    async function loadProfileAndStats(){
+      if(!currentUserId) return; sb = sb || await window.getSupabase(); if(!sb) return;
+      const { data: profile, error } = await sb.from('profiles').select('points').eq('id', currentUserId).maybeSingle();
+      if(error||!profile) return;
+      const pts = profile.points || 0;
+      document.getElementById('userPointsDisplay').textContent = fmt.format(pts) + ' Points';
+      document.getElementById('statCurrentPoints').textContent = fmt.format(pts);
+
+      // Parallel fetch transactions
+      const startMonth = new Date(new Date().getFullYear(), new Date().getMonth(),1).toISOString();
+      const [monthTx, allTx] = await Promise.all([
+        sb.from('point_transactions').select('amount').eq('user_id', currentUserId).gte('created_at', startMonth),
+        sb.from('point_transactions').select('amount').eq('user_id', currentUserId)
+      ]).then(r=>r.map(o=>!o.error?o.data:[])).catch(()=>[[],[]]);
+      const monthEarned = fmt.format((monthTx||[]).reduce((a,r)=>a+(r.amount||0),0));
+      const totalEarned = fmt.format((allTx||[]).reduce((a,r)=>a+(r.amount||0),0));
+      document.getElementById('statMonthPoints').textContent = monthEarned;
+      document.getElementById('statTotalEarned').textContent = totalEarned || fmt.format(pts);
+      computeRank(pts);
+      renderMiniChart();
+    }
+
+    async function computeRank(userPoints){
+      sb = sb || await window.getSupabase(); if(!sb) return;
+      const { data, error } = await sb.from('profiles').select('points').order('points',{ascending:false}).limit(1000);
+      if(error||!data){ return; }
+      const rank = data.findIndex(r => (r.points||0) === userPoints) + 1;
+      const total = data.length;
+      document.getElementById('userRankValue').textContent = rank>0? '#'+rank : '—';
+      document.getElementById('userRankLabel').textContent = 'Out of '+ fmt.format(total) +' users';
+      document.getElementById('userRankIcon').textContent = rank===1?'🥇': rank===2?'🥈': rank===3?'🥉':'🏅';
+    }
+
+    function renderMiniChart(){
+      const el = document.getElementById('pointsChartPlaceholder'); if(!el) return;
+      el.innerHTML = '<div style="display:flex; gap:4px; align-items:flex-end; width:100%; height:100%; padding:12px;">'+
+        Array.from({length:12}).map(()=>{ const h=Math.round(Math.random()*80)+20; return '<span style="flex:1; background:#e5f2ff; border-radius:3px; height:'+h+'%; display:block;"></span>'; }).join('') + '</div>';
+    }
+
+    async function loadRewards(){
+      sb = sb || await window.getSupabase(); if(!sb) return;
+      const list = document.getElementById('recommendedList'); list.innerHTML='';
+      const { data, error } = await sb.from('rewards').select('id,name,description,cost').eq('active',true).order('cost').limit(8);
+      if(error){ list.innerHTML='<div style="color:#888;">Failed to load.</div>'; return; }
+      if(!data.length){ document.getElementById('recommendedEmpty').style.display='block'; return; }
+      const userPts = parseInt((document.getElementById('userPointsDisplay').textContent.split(' ')[0]||'0').replace(/,/g,''))||0;
+      data.forEach(r => {
+        const enough = userPts >= r.cost;
+        const div = document.createElement('div'); div.className='recommended-card';
+        div.innerHTML = `
+          <div class="recommended-img-placeholder">${escapeHtml((r.name||'')[0]||'?')}</div>
+          <div class="recommended-card-title">${escapeHtml(r.name||'Reward')}</div>
+          <div class="recommended-card-desc">${escapeHtml(r.description||'')}</div>
+          <div class="recommended-card-points">${fmt.format(r.cost)} pts</div>
+          <div class="recommended-card-actions">
+            <button class="btn ${enough? 'btn-primary':'btn-secondary'}" data-reward="${r.id}" ${enough? '' : 'disabled'}>${enough? 'Redeem':'Not Enough'}</button>
+          </div>`; list.appendChild(div);
+      });
+    }
+
+    async function loadActivities(){
+      sb = sb || await window.getSupabase(); if(!sb) return;
+      const list = document.getElementById('activityList'); list.innerHTML=''; const empty=document.getElementById('activityEmptyState');
+      const { data, error } = await sb.from('logs').select('message, created_at, action_type').eq('user_id', currentUserId).order('created_at',{ascending:false}).limit(6);
+      if(error){ empty.textContent='Failed to load activity.'; return; }
+      if(!data.length){ empty.style.display='block'; return; } empty.style.display='none';
+      data.forEach(a=>{
+        const item = document.createElement('div'); 
+        item.className='activity-item';
+        
+        // Get icon and format message based on action type
+        let icon = '•';
+        let displayMessage = a.message || 'Activity';
+        let timeAgo = getTimeAgo(new Date(a.created_at));
+        
+        switch(a.action_type) {
+          case 'Recycle':
+            icon = '+';
+            // Extract points from message like "+50 pts for recycling"
+            const recycleMatch = a.message.match(/\+(\d+) pts/);
+            if (recycleMatch) {
+              displayMessage = `Earned ${recycleMatch[1]} points`;
+              const materialMatch = a.message.match(/recycling (\w+)/i);
+              if (materialMatch) {
+                displayMessage += `\nSmart bin detected ${materialMatch[1]} • ${timeAgo}`;
+              } else {
+                displayMessage += `\nSmart recycling detection • ${timeAgo}`;
+              }
+            }
+            break;
+          case 'Reward Redeemed':
+            icon = '🎁';
+            // Extract cost from message like "Redeemed reward (...) for 1200 pts"
+            const redeemMatch = a.message.match(/for (\d+) pts/);
+            if (redeemMatch) {
+              displayMessage = `Redeemed gift card\n$${Math.floor(parseInt(redeemMatch[1])/100)} Amazon voucher • ${timeAgo}`;
+            } else {
+              displayMessage = `Redeemed reward • ${timeAgo}`;
+            }
+            break;
+          case 'Badge Awarded':
+            icon = '🏆';
+            displayMessage = `Badge earned\n${a.message.replace('Badge ', '').replace(' awarded', '')} • ${timeAgo}`;
+            break;
+          case 'Admin Adjust':
+            icon = '+';
+            const adjustMatch = a.message.match(/by ([-+]?\d+)/);
+            if (adjustMatch) {
+              const points = parseInt(adjustMatch[1]);
+              displayMessage = `Earned ${Math.abs(points)} points\n${points > 0 ? 'Daily login bonus' : 'Admin adjustment'} • ${timeAgo}`;
+            }
+            break;
+          default:
+            displayMessage = `${a.message}\n${timeAgo}`;
+        }
+        
+        const [title, subtitle] = displayMessage.split('\n');
+        item.innerHTML = `<div class="activity-icon">${icon}</div>
+          <div class="activity-details">
+            <span class="activity-text">${escapeHtml(title)}</span>
+            <span class="activity-time">${escapeHtml(subtitle || timeAgo)}</span>
+          </div>`;
+        list.appendChild(item);
+      });
+    }
+
+    function getTimeAgo(date) {
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      
+      if (diffMins < 60) return diffMins <= 1 ? 'Just now' : `${diffMins} minutes ago`;
+      if (diffHours < 24) return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
+      if (diffDays === 1) return 'Yesterday';
+      if (diffDays < 7) return `${diffDays} days ago`;
+      return date.toLocaleDateString();
+    }
+
+    async function loadEarningOps(){
+      sb = sb || await window.getSupabase(); if(!sb) return;
+      const list=document.getElementById('earningList'); list.innerHTML=''; const empty=document.getElementById('earningEmptyState');
+      const { data, error } = await sb.from('earning_opportunities').select('id,title,description,points').eq('active',true).order('points',{ascending:false}).limit(6);
+      if(error){ empty.textContent='Failed to load.'; return; }
+      if(!data.length){ empty.style.display='block'; return; } empty.style.display='none';
+      data.forEach(op=>{ const div=document.createElement('div'); div.className='earning-item'; div.innerHTML=`<div class="earning-info"><span class="earning-title-text">${escapeHtml(op.title||'Opportunity')}</span><span class="earning-desc">${escapeHtml(op.description||'')}</span></div><span class="earning-points">+${fmt.format(op.points||0)} pts</span><button class="btn btn-primary" data-op="${op.id}">Start</button>`; list.appendChild(div); });
+    }
+
+    async function loadLeaderboard(range){
+      sb = sb || await window.getSupabase(); if(!sb) return;
+      const list = document.getElementById('leaderboard-list'); list.innerHTML=''; document.getElementById('leaderboard-modal-footer').textContent='Loading...';
+      try {
+        if(range==='alltime'){
+          const { data, error } = await sb.from('profiles').select('id,name,points').order('points',{ascending:false}).limit(25); if(error) throw error; renderLeaderboardRows(data.map((p,i)=>({ rank:i+1, name:p.name||'User', handle:p.id.slice(0,8), points:p.points||0 })));
+        } else {
+          const since = (range==='weekly'? (d=>{ const n=new Date(); const diff=n.getDate()-n.getDay()+(n.getDay()===0?-6:1); return new Date(n.setDate(diff)); })() : new Date(new Date().getFullYear(), new Date().getMonth(),1)).toISOString();
+          const { data, error } = await sb.rpc('points_leaderboard_since',{ since_ts: since });
+            if(error) throw error;
+            renderLeaderboardRows(data.map((r,i)=>({ rank:i+1, name:r.name||'User', handle:r.id?.slice(0,8)||'', points:r.total_points||0 })));
+        }
+      } catch(e){ list.innerHTML='<li style="padding:16px;">Failed to load.</li>'; }
+      document.getElementById('leaderboard-modal-footer').textContent='Last updated: '+ new Date().toLocaleString();
+    }
+
+    function renderLeaderboardRows(rows){
+      const list = document.getElementById('leaderboard-list'); list.innerHTML='';
+      rows.forEach(r=>{
+        const li=document.createElement('li'); li.className='leaderboard-item';
+        const trophy = r.rank===1?'👑': r.rank===2?'🥈': r.rank===3?'🥉':'',
+        avatar = r.avatar ? `<img class="leaderboard-avatar" src="${r.avatar}" alt="${escapeHtml(r.name)}">` : `<div class="leaderboard-avatar" style="background:#f6f6f6;"></div>`;
+        li.innerHTML = `<div class="leaderboard-rank">${r.rank}</div>${avatar}<div class="leaderboard-user-info"><div class="leaderboard-user-name">${escapeHtml(r.name)}</div><div class="leaderboard-user-handle">@${escapeHtml(r.handle)}</div></div><div class="leaderboard-points"><div class="leaderboard-points-value">${fmt.format(r.points)}</div><div class="leaderboard-points-label">points</div></div>${trophy? `<span class="leaderboard-trophy">${trophy}</span>`:''}`;
+        list.appendChild(li);
+      });
+    }
+
+    // Escape helper
+    function escapeHtml(str){ return (str||'').replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c]||c)); }
+
+    // Dropdown + Logout (reuse existing logic, adjust for supabase signOut)
+    function setupProfileMenu(){
+      const profileBtn = document.getElementById('profileDropdownBtn');
+      const dropdown = document.getElementById('profileDropdownMenu');
+      const logoutBtn = document.getElementById('profileLogoutBtn');
+      const mainLogoutBtn = document.getElementById('logoutBtn');
+      let open=false;
+      function close(e){ if(!open) return; if(e && (profileBtn.contains(e.target)|| dropdown.contains(e.target))) return; dropdown.classList.remove('show'); profileBtn.setAttribute('aria-expanded','false'); open=false; }
+      profileBtn.addEventListener('click',e=>{ e.stopPropagation(); dropdown.classList.toggle('show'); open=dropdown.classList.contains('show'); profileBtn.setAttribute('aria-expanded', open?'true':'false'); if(open) dropdown.focus(); });
+      document.addEventListener('click', close);
+      document.addEventListener('keydown', e=>{ if(e.key==='Escape') close(); });
+      
+      // Handle both logout buttons
+      async function handleLogout() {
+        try {
+          const client = (typeof sb!=='undefined' && sb) || window.supabaseClient || await window.getSupabase();
+          if(client) await client.auth.signOut();
+        } catch(_) {}
+        window.location.href='../index.html';
+      }
+      logoutBtn.addEventListener('click', handleLogout);
+      mainLogoutBtn.addEventListener('click', handleLogout);
+    }
+
+    // Recycling functionality
+    let selectedRecyclingMaterial = null;
+    let recyclingQuantity = 1;
+    const materialPoints = { 'paper': 10, 'plastic': 10, 'metal': 20 };
+
+    function selectMaterial(material) {
+      document.querySelectorAll('.material-option').forEach(opt => {
+        opt.style.borderColor = '#eee';
+        opt.style.background = 'white';
+      });
+      
+      const selected = document.querySelector(`[data-material="${material}"]`);
+      selected.style.borderColor = '#007aff';
+      selected.style.background = '#f0f8ff';
+      
+      selectedRecyclingMaterial = material;
+      document.getElementById('recycling-quantity-section').style.display = 'block';
+      updateRecyclingPreview();
+    }
+
+    function changeRecyclingQuantity(delta) {
+      recyclingQuantity = Math.max(1, recyclingQuantity + delta);
+      document.getElementById('recycling-quantity').textContent = recyclingQuantity;
+      updateRecyclingPreview();
+    }
+
+    function updateRecyclingPreview() {
+      if (selectedRecyclingMaterial) {
+        const points = recyclingQuantity * materialPoints[selectedRecyclingMaterial];
+        document.getElementById('recycling-points-preview').innerHTML = `<strong>Points to earn: ${points}</strong>`;
+      }
+    }
+
+    async function submitRecycling() {
+      if (!selectedRecyclingMaterial) return;
+      
+      const pointsAwarded = recyclingQuantity * materialPoints[selectedRecyclingMaterial];
+      
+      try {
+        const { error } = await sb.from('recycling_logs').insert({
+          user_id: currentUserId,
+          material: selectedRecyclingMaterial,
+          quantity: recyclingQuantity,
+          points_awarded: pointsAwarded
+        });
+
+        if (error) throw error;
+
+        alert(`Success! You earned ${pointsAwarded} points.`);
+        closeRecyclingModal();
+        await loadProfileAndStats();
+        await loadActivities();
+      } catch (error) {
+        alert(`Error: ${error.message}`);
+      }
+    }
+
+    function openRecyclingModal() {
+      document.getElementById('recycling-modal-overlay').classList.add('active');
+      document.body.style.overflow = 'hidden';
+      // Reset form
+      selectedRecyclingMaterial = null;
+      recyclingQuantity = 1;
+      document.querySelectorAll('.material-option').forEach(opt => {
+        opt.style.borderColor = '#eee';
+        opt.style.background = 'white';
+      });
+      document.getElementById('recycling-quantity-section').style.display = 'none';
+      document.getElementById('recycling-quantity').textContent = '1';
+    }
+
+    function closeRecyclingModal() {
+      document.getElementById('recycling-modal-overlay').classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function setupLeaderboardModal(){
+      const btnOpen = document.getElementById('btnOpenLeaderboard');
+      const overlay = document.getElementById('leaderboard-modal-overlay');
+      const closeBtn = document.getElementById('leaderboard-modal-close');
+      btnOpen.addEventListener('click',()=>{ overlay.classList.add('active'); document.body.style.overflow='hidden'; loadLeaderboard('weekly'); });
+      function close(){ overlay.classList.remove('active'); document.body.style.overflow=''; }
+      closeBtn.addEventListener('click', close); overlay.addEventListener('click', e=>{ if(e.target===overlay) close(); });
+      document.querySelectorAll('.leaderboard-tab').forEach(tab=>{
+        tab.addEventListener('click',()=>{ if(tab.classList.contains('active')) return; document.querySelectorAll('.leaderboard-tab').forEach(t=>t.classList.remove('active')); tab.classList.add('active'); loadLeaderboard(tab.dataset.tab); });
+      });
+    }
+
+    async function init(){
+      await getUser();
+      setupProfileMenu();
+      setupLeaderboardModal();
+      await Promise.all([loadProfileAndStats(), loadRewards(), loadActivities(), loadEarningOps()]);
+      try { sb.channel('user-updates')
+        .on('postgres_changes',{ event:'UPDATE', schema:'public', table:'profiles', filter:'id=eq.'+currentUserId }, loadProfileAndStats)
+        .on('postgres_changes',{ event:'INSERT', schema:'public', table:'logs', filter:'user_id=eq.'+currentUserId }, loadActivities)
+        .subscribe(); } catch {}
+    }
+    init();
+  </script>
+</body>
+</html>

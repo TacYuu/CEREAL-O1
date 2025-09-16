@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" class="redeemables-page">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CEREAL – Redeem Points</title>
+  <link rel="stylesheet" href="redeemables.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+  <script src="../../config.js"></script>
+  <script src="../../supabase-client.js"></script>
+  <script type="module" src="../../js/auth.js"></script>
+</head>
+<body>
+  <div class="redeemables-container">
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <div class="left-section">
+  <a href="../user-dashboard.html" class="back-btn" aria-label="Back to Dashboard">← Back</a>
+        <img src="../../icons/recycle.png" alt="EcoPoints Logo" class="logo">
+        <h1>EcoPoints Shop</h1>
+      </div>
+      <div class="right-section">
+        <div class="points-box" id="pointsBox">—</div>
+        <div class="profile-container">
+          <div class="profile-placeholder" id="profileBtn" title="Menu"></div>
+          <div class="dropdown-menu" id="profileMenu">
+            <a href="../user-dashboard.html">Home</a>
+            <a href="#" id="logoutLink">Logout</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    
+
+            <!-- Section 1 -->
+            <section class="section section-1">
+              <div class="thankyou-card">
+                <div class="heart-icon">♥</div>
+                <h2>Thank you for Recycling</h2>
+                <h4>
+                  Your commitment to recycling makes a real difference.<br>
+                  Every item you recycle helps protect our planet and creates a more sustainable future for everyone.
+                </h4>
+              </div>
+
+              <div class="redeem-heading">
+                <h1>Redeem Your EcoPoints</h1>
+                <p>Turn your Recycling Efforts into amazing rewards</p>
+              </div>
+            </section>
+
+            <!-- Section 2 -->
+            <section class="section section-2">
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <div class="stat-info">
+                    <h2 id="statPoints">—</h2>
+                    <p>Available Points</p>
+                  </div>
+                  <div class="stat-icon"></div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-info">
+                    <h2 id="statItems">—</h2>
+                    <p>Items Recycled</p>
+                  </div>
+                  <div class="stat-icon"></div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-info">
+                    <h2 id="statClaims">—</h2>
+                    <p>Rewards Claimed</p>
+                  </div>
+                  <div class="stat-icon"></div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-info">
+                    <h2 id="statStatus">—</h2>
+                    <p>Member Status</p>
+                  </div>
+                  <div class="stat-icon"></div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Section 3 -->
+            <section class="section section-3">
+              <div class="section-3-content">
+                <div class="shop-wrapper">
+                  <div class="shop-header">
+                    <h2>Shop Categories</h2>
+                    <div class="shop-nav">
+                      <button class="pill active" data-cat="all">All</button>
+                      <div id="pillDynamic"></div>
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:12px; align-items:center; margin: 8px 0 20px;">
+                    <label for="sortBy" style="font-weight:600; color:#222;">Sort by:</label>
+                    <select id="sortBy" style="padding:6px 10px; border:1px solid #e0e0e0; border-radius:8px; background:#f7f7fa;">
+                      <option value="cost-low">Price: Low to High</option>
+                      <option value="cost-high">Price: High to Low</option>
+                      <option value="name">Name</option>
+                    </select>
+                  </div>
+                  <div class="shop-grid" id="shopGrid"></div>
+                </div>
+              </div>
+            </section>
+
+            <script type="module">
+              import { ensureSessionRedirect } from '../../js/services/users-service.js';
+              import { redeemReward as rpcRedeem } from '../../js/services/rewards-service.js';
+              import { selectTable } from '../../js/api-client.js';
+              import { logout as authLogout } from '../../js/auth.js';
+
+              let currentUser=null; let userPoints=0; let allRewards=[]; let allCategories=[]; let currentCategory='all';
+
+              async function init(){
+                const session = await ensureSessionRedirect({ redirectIf:true, target:'../../index.html' });
+                if(!session) return; currentUser = session.user;
+                await Promise.all([loadStats(), loadCategories(), loadRewards()]);
+                setupUI();
+              }
+
+              async function loadStats(){
+                const sb = await window.getSupabase();
+                // Points
+                const prof = await selectTable({ table:'profiles', columns:'points,role', filters:[{ column:'id', value: currentUser.id }], limit:1 });
+                userPoints = prof[0]?.points || 0; document.getElementById('pointsBox').textContent = `${userPoints.toLocaleString()} pts`;
+                document.getElementById('statPoints').textContent = userPoints.toLocaleString();
+                // Items recycled (count transactions of type 'recycle')
+                let items=0; try{ const { count } = await sb.from('point_transactions').select('id', { count:'exact', head:true }).eq('user_id', currentUser.id).eq('type','recycle'); items = count||0; } catch {}
+                document.getElementById('statItems').textContent = items.toLocaleString();
+                // Rewards claimed
+                let claims=0; try{ const { count } = await sb.from('reward_claims').select('id', { count:'exact', head:true }).eq('user_id', currentUser.id); claims = count||0; } catch {}
+                document.getElementById('statClaims').textContent = claims.toLocaleString();
+                // Member status (simple tier by points)
+                const status = userPoints>=2000? 'Gold' : userPoints>=1000? 'Silver' : 'Bronze';
+                document.getElementById('statStatus').textContent = status;
+              }
+
+              async function loadCategories(){
+                const rows = await selectTable({ table:'reward_categories', columns:'id,name', order:{ column:'name', asc:true }, limit:200 });
+                allCategories = rows||[]; const wrap=document.getElementById('pillDynamic'); wrap.innerHTML='';
+                allCategories.forEach(c=>{ const b=document.createElement('button'); b.className='pill'; b.dataset.cat=c.id; b.textContent=c.name; wrap.appendChild(b); });
+              }
+
+              async function loadRewards(){
+                allRewards = await selectTable({ table:'rewards', columns:'id,name,description,cost,stock,category_id,active', filters:[{ column:'active', value:true }], order:{ column:'cost', asc:true }, limit:300 }) || [];
+                renderRewards(allRewards);
+              }
+
+              function canAfford(r){ return (userPoints||0) >= (r.cost||0); }
+              function renderRewards(list){
+                const grid=document.getElementById('shopGrid'); grid.innerHTML='';
+                let rows = [...(list||[])]; if(currentCategory!=='all'){ rows = rows.filter(r=> String(r.category_id)===String(currentCategory)); }
+                if(!rows.length){ grid.innerHTML = '<div class="no-rewards">No rewards available</div>'; return; }
+                rows.forEach(r=>{
+                  const available = (r.stock||0)>0; const afford = canAfford(r);
+                  const el=document.createElement('div'); el.className='shop-card';
+                  el.innerHTML = `<div class="shop-img">${escapeHtml(r.name||'Reward')}</div>
+                    <div class="shop-details">
+                      <p class="shop-title">${escapeHtml(r.name||'Reward')}</p>
+                      <p class="shop-desc">${escapeHtml(r.description||'')}</p>
+                      <div class="shop-footer">
+                        <span class="points">${(r.cost||0).toLocaleString()} pts</span>
+                        <button class="redeem-btn ${available&&afford? '':'disabled'}" data-id="${r.id}" ${available&&afford? '':'disabled'}>${available? (afford? 'Redeem':'Not enough Points') : 'Out of Stock'}</button>
+                      </div>
+                    </div>`;
+                  grid.appendChild(el);
+                });
+              }
+
+              function escapeHtml(str){ return (str||'').replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]||c)); }
+
+              function setupUI(){
+                // Profile dropdown
+                const btn=document.getElementById('profileBtn'); const menu=document.getElementById('profileMenu'); let open=false;
+                btn.addEventListener('click',()=>{ open=!open; menu.classList.toggle('show', open); });
+                document.addEventListener('click',e=>{ if(open && !e.target.closest('.profile-container')){ open=false; menu.classList.remove('show'); } });
+                document.getElementById('logoutLink').addEventListener('click', async (e)=>{ e.preventDefault(); await authLogout({ redirect:true, to:'../../index.html' }); });
+                // Category pills
+                const nav=document.querySelector('.shop-nav');
+                nav.addEventListener('click',e=>{ const b=e.target.closest('button.pill'); if(!b) return; nav.querySelectorAll('.pill').forEach(x=>x.classList.remove('active')); b.classList.add('active'); currentCategory=b.dataset.cat||'all'; renderRewards(allRewards); });
+                // Redeem handler
+                document.getElementById('shopGrid').addEventListener('click', async e=>{
+                  const b=e.target.closest('button.redeem-btn'); if(!b || b.classList.contains('disabled')) return; const id=b.dataset.id; if(!confirm('Redeem this reward?')) return;
+                  try { await rpcRedeem(id); await Promise.all([loadStats(), loadRewards()]); alert('Reward redeemed successfully!'); } catch(err){ alert('Failed to redeem: '+(err.message||err)); }
+                });
+              }
+
+              init();
+            </script>

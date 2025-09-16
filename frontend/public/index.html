@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome back</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+    <script src="config.js"></script>
+    <script src="supabase-client.js"></script>
+    <script type="module" src="js/auth.js"></script>
+</head>
+<body class="auth-page">
+    <div class="transition-overlay"></div>
+    <div class="login-center">
+        <div class="login-card">
+            <div class="login-logo">
+                <img src="icons/logo.png" alt="CEREAL Logo">
+            </div>
+            <div class="login-title">Welcome back</div>
+            <div class="login-subtitle">Sign in to your account</div>
+            <form class="login-form" id="signin-form" autocomplete="on">
+                <div class="login-error" id="login-error"></div>
+                <label class="login-label" for="email">Email</label>
+                <input class="login-input" type="email" id="email" name="email" placeholder="Enter your email" required>
+                <label class="login-label" for="password">Password</label>
+                <input class="login-input" type="password" id="password" name="password" placeholder="Enter your password" required>
+                <div class="login-row">
+                    <label class="login-remember">
+                        <input type="checkbox" name="remember"> Remember me
+                    </label>
+                    <a href="#" class="login-forgot">Forgot password?</a>
+                </div>
+                <button type="submit" class="login-btn">Sign in</button>
+            </form>
+            <div class="login-divider"><span>Or continue with</span></div>
+            <button type="button" class="google-btn" id="google-signin-btn">
+                <img src="icons/google.png" alt="Google" class="google-icon"><span>Google</span>
+            </button>
+            <div class="login-footer">Don't have an account? <a href="signup.html" id="signup-link">Sign up</a></div>
+        </div>
+    </div>
+    <script type="module">
+    import { signIn, signInWithProvider, fetchProfileRole, getSession, determineHome, isMyEmailAdmin, fetchMyProfile } from './js/api-client.js';
+    import { redirectIfSession } from './js/auth.js';
+      import { logError } from './js/logger.js';
+
+      const overlay = document.querySelector('.transition-overlay');
+      const center = document.querySelector('.login-center');
+      window.addEventListener('load', () => { overlay.classList.add('expand'); setTimeout(async ()=>{ overlay.style.display='none'; center.classList.add('visible'); await checkExistingSession(); },600); });
+      document.getElementById('signup-link').addEventListener('click', (e)=>{ e.preventDefault(); overlay.style.display='block'; overlay.classList.add('expand'); setTimeout(()=>{ window.location.href='signup.html'; },600); });
+
+                        async function checkExistingSession(){
+                                const session = await getSession();
+                                if(!session) return;
+                                // Debug: log decision inputs
+                                try {
+                                    const [emailAdmin, profile] = await Promise.all([isMyEmailAdmin(), fetchMyProfile()]);
+                                    const role = profile?.role;
+                                    console.log('[AuthDebug] isMyEmailAdmin =', emailAdmin, 'profile.role =', role);
+                                    const usp = new URLSearchParams(location.search);
+                                    if(usp.get('debugAuth')==='1'){
+                                        alert(`Auth Debug\nAdmin by email: ${emailAdmin}\nProfile role: ${role||'(none)'}`);
+                                    }
+                                } catch(_){}
+                                const home = await determineHome();
+                                window.location.href = home;
+                        }
+
+      document.getElementById('signin-form').addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const errorDiv = document.getElementById('login-error'); errorDiv.style.display='none';
+                        try { const data = await signIn(email, password);
+                            try { const emailAdmin = await isMyEmailAdmin(); const prof = await fetchMyProfile(); console.log('[AuthDebug] post-login isMyEmailAdmin =', emailAdmin, 'profile.role =', prof?.role); } catch(_){}
+                            const home = await determineHome(); window.location.href = home; }
+        catch(err){ errorDiv.textContent = err.message || 'Login failed'; errorDiv.style.display='block'; logError('login', err); }
+      });
+
+      document.getElementById('google-signin-btn').addEventListener('click', async ()=>{ try { await signInWithProvider('google'); } catch(e){ logError('oauth_google', e);} });
+    </script>
+</body>
+</html>

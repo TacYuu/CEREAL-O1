@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CEREAL – Admin Dashboard</title>
+  <link rel="stylesheet" href="../../styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+  <script src="../../config.js"></script>
+  <script src="../../supabase-client.js"></script>
+  <style>
+    .admin-container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+    .admin-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .admin-card h3 { margin: 0 0 15px 0; color: #333; }
+    .user-list, .reward-list { max-height: 400px; overflow-y: auto; }
+    .user-item, .reward-item { 
+      display: flex; justify-content: space-between; align-items: center; 
+      padding: 10px; border-bottom: 1px solid #eee; 
+    }
+    .user-info, .reward-info { flex: 1; }
+    .user-actions, .reward-actions { display: flex; gap: 5px; }
+    .btn-small { padding: 5px 10px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; }
+    .btn-primary { background: #007aff; color: white; }
+    .btn-secondary { background: #6c757d; color: white; }
+    .btn-danger { background: #dc3545; color: white; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+    .modal-content { background: white; margin: 5% auto; padding: 20px; width: 80%; max-width: 500px; border-radius: 8px; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+    .form-group input, .form-group select, .form-group textarea { 
+      width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; 
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <div class="admin-header">
+      <h1>Admin Dashboard</h1>
+      <div>
+        <a href="../user-dashboard.html" class="btn btn-secondary">View as User</a>
+        <button onclick="logout()" class="btn btn-danger">Logout</button>
+      </div>
+    </div>
+
+    <div class="admin-grid">
+      <!-- Users Management -->
+      <div class="admin-card">
+        <h3>Users Management</h3>
+        <div class="user-list" id="userList"></div>
+        <button onclick="openAddUserModal()" class="btn btn-primary" style="margin-top: 10px;">Add User Points</button>
+      </div>
+
+      <!-- Rewards Management -->
+      <div class="admin-card">
+        <h3>Rewards Management</h3>
+        <div class="reward-list" id="rewardList"></div>
+        <button onclick="openAddRewardModal()" class="btn btn-primary" style="margin-top: 10px;">Add Reward</button>
+      </div>
+
+      <!-- Statistics -->
+      <div class="admin-card">
+        <h3>Statistics</h3>
+        <div id="statsContainer">
+          <p>Total Users: <span id="totalUsers">-</span></p>
+          <p>Total Rewards: <span id="totalRewards">-</span></p>
+          <p>Total Points Awarded: <span id="totalPoints">-</span></p>
+          <p>Recent Claims: <span id="recentClaims">-</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Points Modal -->
+  <div id="addPointsModal" class="modal">
+    <div class="modal-content">
+      <h3>Adjust User Points</h3>
+      <form id="addPointsForm">
+        <div class="form-group">
+          <label>User:</label>
+          <select id="userSelect" required></select>
+        </div>
+        <div class="form-group">
+          <label>Points Change:</label>
+          <input type="number" id="pointsDelta" required placeholder="Enter positive or negative number">
+        </div>
+        <div class="form-group">
+          <label>Reason:</label>
+          <input type="text" id="pointsReason" placeholder="Optional reason">
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button type="submit" class="btn btn-primary">Update Points</button>
+          <button type="button" onclick="closeModal('addPointsModal')" class="btn btn-secondary">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Reward Modal -->
+  <div id="addRewardModal" class="modal">
+    <div class="modal-content">
+      <h3>Add New Reward</h3>
+      <form id="addRewardForm">
+        <div class="form-group">
+          <label>Name:</label>
+          <input type="text" id="rewardName" required>
+        </div>
+        <div class="form-group">
+          <label>Description:</label>
+          <textarea id="rewardDescription" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Cost (points):</label>
+          <input type="number" id="rewardCost" required min="0">
+        </div>
+        <div class="form-group">
+          <label>Stock:</label>
+          <input type="number" id="rewardStock" required min="0">
+        </div>
+        <div class="form-group">
+          <label>Category:</label>
+          <select id="rewardCategory"></select>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button type="submit" class="btn btn-primary">Add Reward</button>
+          <button type="button" onclick="closeModal('addRewardModal')" class="btn btn-secondary">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+  import { ensureSessionRedirect, listUsers, setUserRole } from '../../js/services/users-service.js';
+    import { listAllRewards, createReward, toggleRewardActive } from '../../js/services/rewards-service.js';
+    import { adminAdjustPoints, getRecentClaimsCount } from '../../js/services/points-service.js';
+    import { selectTable, isMyEmailAdmin } from '../../js/api-client.js';
+  import { logout as authLogout } from '../../js/auth.js';
+
+    let currentUserId = null;
+
+    async function initAdmin(){
+      const session = await ensureSessionRedirect({ redirectIf:true, target:'../../index.html' });
+      if(!session) return; currentUserId = session.user.id;
+      const allowed = await isMyEmailAdmin();
+      if(!allowed){
+        document.body.innerHTML = '<div style="max-width:680px;margin:10vh auto;padding:24px;border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.1);font:16px system-ui;color:#222;">'+
+          '<h2 style="margin-top:0;color:#b00020;">Access denied</h2>'+
+          '<p>You are not an admin. If you believe this is a mistake, contact support.</p>'+
+          '<p><a href="../user-dashboard.html">Go to user dashboard</a> or <a href="../../index.html">sign out</a>.</p>'+
+        '</div>';
+        return;
+      }
+      await Promise.all([renderUsers(), renderRewards(), renderStats(), loadCategories()]);
+    }
+
+    async function renderUsers(){
+      const data = await listUsers();
+      const userList = document.getElementById('userList'); const userSelect = document.getElementById('userSelect');
+      userList.innerHTML=''; userSelect.innerHTML='<option value="">Select a user</option>';
+      data.forEach(user=>{ const div=document.createElement('div'); div.className='user-item'; div.innerHTML=`<div class="user-info"><strong>${user.name||'Unknown'}</strong><br><small>${user.email||'No email'} • ${user.points} pts • ${user.role}</small></div><div class="user-actions"><button class="btn-small btn-primary" data-act="role" data-id="${user.id}" data-role="${user.role==='admin'?'user':'admin'}">${user.role==='admin'?'Remove Admin':'Make Admin'}</button></div>`; userList.appendChild(div); const opt=document.createElement('option'); opt.value=user.id; opt.textContent=`${user.name||user.email} (${user.points} pts)`; userSelect.appendChild(opt); });
+      userList.addEventListener('click', async e=>{ const btn=e.target.closest('button[data-act="role"]'); if(!btn) return; await setUserRole(btn.dataset.id, btn.dataset.role); await renderUsers(); }, { once:true });
+    }
+
+    async function renderRewards(){
+      const rewards = await listAllRewards();
+      const rewardList=document.getElementById('rewardList'); rewardList.innerHTML='';
+      rewards.forEach(r=>{ const div=document.createElement('div'); div.className='reward-item'; div.innerHTML=`<div class="reward-info"><strong>${r.name}</strong><br><small>${r.cost} pts • Stock: ${r.stock} • ${r.active?'Active':'Inactive'}</small></div><div class="reward-actions"><button class="btn-small btn-secondary" data-act="toggle" data-id="${r.id}" data-active="${!r.active}">${r.active?'Deactivate':'Activate'}</button></div>`; rewardList.appendChild(div); });
+      rewardList.addEventListener('click', async e=>{ const btn=e.target.closest('button[data-act="toggle"]'); if(!btn) return; await toggleRewardActive(btn.dataset.id, btn.dataset.active==='true'); await renderRewards(); }, { once:true });
+    }
+
+    async function renderStats(){
+      const [profiles, rewards, claimsCount, transactions] = await Promise.all([
+        selectTable({ table:'profiles', columns:'id' , limit:1000 }),
+        selectTable({ table:'rewards', columns:'id' , limit:500 }),
+        getRecentClaimsCount(7),
+        selectTable({ table:'point_transactions', columns:'amount', limit:1000 })
+      ]);
+      document.getElementById('totalUsers').textContent = profiles.length;
+      document.getElementById('totalRewards').textContent = rewards.length;
+      document.getElementById('recentClaims').textContent = claimsCount;
+      const totalPts = transactions.reduce((s,t)=> t.amount>0? s+t.amount:s,0); document.getElementById('totalPoints').textContent = totalPts.toLocaleString();
+    }
+
+    async function loadCategories(){
+      const rows = await selectTable({ table:'reward_categories', columns:'id,name', limit:200, order:{ column:'name', asc:true } });
+      const sel = document.getElementById('rewardCategory'); sel.innerHTML='<option value="">No Category</option>'; rows.forEach(c=>{ const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); });
+    }
+
+    // Modals
+    window.openAddUserModal = ()=> document.getElementById('addPointsModal').style.display='block';
+    window.openAddRewardModal = ()=> document.getElementById('addRewardModal').style.display='block';
+    window.closeModal = id => document.getElementById(id).style.display='none';
+
+    // Forms
+    document.getElementById('addPointsForm').addEventListener('submit', async e=>{
+      e.preventDefault();
+      const userId = document.getElementById('userSelect').value; const delta=parseInt(document.getElementById('pointsDelta').value); const reason=document.getElementById('pointsReason').value;
+      await adminAdjustPoints({ userId, delta, reason });
+      window.closeModal('addPointsModal'); await Promise.all([renderUsers(), renderStats()]);
+    });
+
+    document.getElementById('addRewardForm').addEventListener('submit', async e=>{
+      e.preventDefault();
+      const name=document.getElementById('rewardName').value; const description=document.getElementById('rewardDescription').value; const cost=parseInt(document.getElementById('rewardCost').value); const stock=parseInt(document.getElementById('rewardStock').value); const category=document.getElementById('rewardCategory').value||null;
+      await createReward({ name, description, cost, stock, category });
+      window.closeModal('addRewardModal'); await Promise.all([renderRewards(), renderStats()]);
+    });
+
+  window.logout = async ()=>{ await authLogout({ redirect:true, to:'../../index.html' }); };
+
+    // Close modals on outside click
+    window.onclick = e => { document.querySelectorAll('.modal').forEach(m=>{ if(e.target===m) m.style.display='none'; }); };
+
+    initAdmin();
+  </script>
+</body>
+</html>

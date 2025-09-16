@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CEREAL Admin Dashboard</title>
+    <link rel="stylesheet" href="../styles.css">
+    <link rel="icon" href="../favicon.ico" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #f5f6fa 0%, #e9ecef 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .admin-dashboard-container {
+            max-width: 1200px;
+            margin: 32px auto;
+            padding: 0 24px 32px 24px;
+        }
+        .admin-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 0 24px 0;
+        }
+        .admin-logo {
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            gap: 10px;
+            letter-spacing: -0.5px;
+            color: #222;
+        }
+        .admin-logo-square {
+            width: 28px;
+            height: 28px;
+            background: #007aff;
+            border-radius: 8px;
+            margin-right: 8px;
+            box-shadow: 0 2px 8px rgba(0,122,255,0.10);
+        }
+        .admin-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .notification-button {
+            background: #f1f2f6;
+            border: none;
+            border-radius: 12px;
+            padding: 7px 18px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 1.01rem;
+            font-weight: 500;
+            color: #007aff;
+            transition: background 0.18s, box-shadow 0.18s, transform 0.13s;
+            box-shadow: 0 1.5px 4px 0 rgba(0,0,0,0.04);
+        }
+        .notification-button:active {
+            background: #e2e3e8;
+            transform: scale(0.97);
+        }
+        .notification-icon {
+            width: 22px;
+            height: 22px;
+        }
+        .profile-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-left: 8px;
+            box-shadow: 0 1.5px 4px 0 rgba(0,0,0,0.04);
+        }
+        .logout-btn {
+            background: #fff;
+            color: #007aff;
+            border: 1.5px solid #e9ecef;
+            border-radius: 12px;
+            padding: 7px 18px;
+            font-size: 1.01rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, color 0.18s, box-shadow 0.18s, transform 0.13s;
+            box-shadow: 0 1.5px 4px 0 rgba(0,0,0,0.04);
+        }
+        .logout-btn:hover, .logout-btn:active {
+            background: #f1f2f6;
+            color: #0051a8;
+            transform: scale(0.97);
+        }
+        .admin-main {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+        .admin-stats-row {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        .admin-stat-card {
+            flex: 1 1 0;
+            min-width: 220px;
+            background: rgba(255,255,255,0.92);
+            border-radius: 18px;
+            border: none;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 8px 32px 0 rgba(60,60,60,0.07), 0 1.5px 4px 0 rgba(0,0,0,0.04);
+            transition: box-shadow 0.3s cubic-bezier(.4,0,.2,1), transform 0.18s;
+            animation: iosCardFadeIn 0.7s cubic-bezier(.4,0,.2,1);
+        }
+        .admin-stat-card:hover {
+            box-shadow: 0 12px 36px 0 rgba(0,122,255,0.10), 0 2px 8px 0 rgba(0,0,0,0.06);
+            transform: translateY(-2px) scale(1.02);
+        }
+        @keyframes iosCardFadeIn {
+            from { opacity: 0; transform: translateY(24px) scale(0.98);}
+            to { opacity: 1; transform: translateY(0) scale(1);}
+        }
+        .admin-stat-icon {
+            width: 48px;
+            height: 48px;
+            background: #f1f2f6;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1.5px 4px 0 rgba(0,0,0,0.04);
+        }
+        .admin-stat-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .admin-stat-label {
+            color: #6c757d;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        .admin-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #212529;
+            letter-spacing: -0.5px;
+        }
+        .admin-management-row {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        .admin-management-card {
+            background: rgba(255,255,255,0.92);
+            border-radius: 18px;
+            border: none;
+            padding: 24px;
+            flex: 1 1 320px;
+            min-width: 320px;
+            margin-bottom: 0;
+            box-shadow: 0 8px 32px 0 rgba(60,60,60,0.07), 0 1.5px 4px 0 rgba(0,0,0,0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: box-shadow 0.3s cubic-bezier(.4,0,.2,1), transform 0.18s;
+            animation: iosCardFadeIn 0.7s cubic-bezier(.4,0,.2,1);
+        }
+        .admin-management-card:hover {
+            box-shadow: 0 12px 36px 0 rgba(0,122,255,0.10), 0 2px 8px 0 rgba(0,0,0,0.06);
+            transform: translateY(-2px) scale(1.02);
+        }
+        .admin-management-card h2 {
+            font-size: 1.13rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #222;
+            letter-spacing: -0.5px;
+        }
+        .admin-management-card hr {
+            border: none;
+            border-bottom: 2px solid #eee;
+            margin: 8px 0 16px 0;
+        }
+        .admin-management-card label {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+            display: block;
+            color: #222;
+        }
+        .admin-management-card input,
+        .admin-management-card select,
+        .admin-management-card textarea {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border-radius: 14px;
+            border: 1.5px solid #e0e0e0;
+            background: #f7f7fa;
+            font-size: 1.05rem;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+            outline: none;
+            box-shadow: none;
+        }
+        .admin-management-card input:focus,
+        .admin-management-card select:focus,
+        .admin-management-card textarea:focus {
+            border-color: #007aff;
+            background: #fff;
+        }
+        .admin-management-card textarea {
+            resize: none;
+            height: 48px;
+        }
+        .admin-form-row {
+            display: flex;
+            gap: 12px;
+        }
+        .admin-form-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .admin-management-card .btn {
+            width: 100%;
+            margin-bottom: 0;
+            border: none;
+            border-radius: 14px;
+            font-size: 1.08rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0.95rem 0;
+            transition: background 0.18s, box-shadow 0.18s, transform 0.13s;
+            box-shadow: 0 1.5px 4px 0 rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5em;
+        }
+        .admin-management-card .btn-black {
+            background: linear-gradient(90deg, #007aff 60%, #0051a8 100%);
+            color: #fff;
+        }
+        .admin-management-card .btn-black:active {
+            background: #0051a8;
+            transform: scale(0.98);
+        }
+        .admin-management-card .btn-red {
+            background: #f1f2f6;
+            color: #222;
+            border: 1.5px solid #e9ecef;
+        }
+        .admin-management-card .btn-red:active {
+            background: #e2e3e8;
+            transform: scale(0.98);
+        }
+        .admin-management-card .btn-black:hover {
+            background: #0051a8;
+        }
+        .admin-management-card .btn-red:hover {
+            background: #e9ecef;
+        }
+        .admin-management-card .button-row {
+            display: flex;
+            gap: 10px;
+        }
+        .admin-enrollment-card {
+            width: 100%;
+            margin-top: 0;
+            padding: 24px;
+            background: rgba(255,255,255,0.92);
+            border-radius: 18px;
+            border: none;
+            box-shadow: 0 8px 32px 0 rgba(60,60,60,0.07), 0 1.5px 4px 0 rgba(0,0,0,0.04);
+            animation: iosCardFadeIn 0.7s cubic-bezier(.4,0,.2,1);
+        }
+        .admin-enrollment-card h2 {
+            font-size: 1.13rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #222;
+            letter-spacing: -0.5px;
+        }
+        .admin-enrollment-card hr {
+            border: none;
+            border-bottom: 2px solid #eee;
+            margin: 8px 0 16px 0;
+        }
+        .notion-form-embed {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 28px 18px;
+            margin-top: 10px;
+            border: 1.5px solid #e9ecef;
+            text-align: center;
+        }
+        .notion-form-preview {
+            background: #fff;
+            border-radius: 10px;
+            border: 1.5px solid #e9ecef;
+            margin: 18px auto 0 auto;
+            max-width: 340px;
+            padding: 18px 12px;
+        }
+        .notion-form-preview-row {
+            background: #f1f2f6;
+            border-radius: 6px;
+            height: 16px;
+            margin-bottom: 10px;
+        }
+        .notion-form-preview-row:last-child {
+            height: 32px;
+            background: #007aff;
+            margin-bottom: 0;
+        }
+        .admin-activity-card {
+            background: rgba(255,255,255,0.92);
+            border-radius: 18px;
+            border: none;
+            padding: 24px;
+            margin-bottom: 0;
+            box-shadow: 0 8px 32px 0 rgba(60,60,60,0.07), 0 1.5px 4px 0 rgba(0,0,0,0.04);
+            animation: iosCardFadeIn 0.7s cubic-bezier(.4,0,.2,1);
+        }
+        .admin-activity-card h2 {
+            font-size: 1.13rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #222;
+            letter-spacing: -0.5px;
+        }
+        .admin-activity-card hr {
+            border: none;
+            border-bottom: 2px solid #eee;
+            margin: 8px 0 16px 0;
+        }
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            justify-content: space-between;
+            transition: background 0.18s;
+            border-radius: 10px;
+            padding: 4px 0;
+        }
+        .activity-item:hover {
+            background: #f1f2f6;
+        }
+        .activity-left {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f1f2f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 1.5px 4px 0 rgba(0,0,0,0.04);
+        }
+        .activity-details {
+            display: flex;
+            flex-direction: column;
+        }
+        .activity-text {
+            color: #222;
+            font-size: 1.01rem;
+            font-weight: 500;
+        }
+        .activity-time {
+            color: #adb5bd;
+            font-size: 0.95rem;
+        }
+        .activity-category {
+            background: #f1f2f6;
+            color: #007aff;
+            font-size: 0.97rem;
+            border-radius: 8px;
+            padding: 4px 14px;
+            align-self: center;
+            font-weight: 500;
+        }
+        /* Responsive adjustments */
+        @media (max-width: 900px) {
+            .admin-stats-row, .admin-management-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            .admin-stat-card, .admin-management-card {
+                min-width: 0;
+            }
+            .admin-dashboard-container {
+                padding: 0 8px 24px 8px;
+            }
+        }
+        @media (max-width: 600px) {
+            .admin-dashboard-container {
+                padding: 0 2px 18px 2px;
+            }
+            .admin-management-card,
+            .admin-enrollment-card,
+            .admin-activity-card {
+                padding: 12px 4px 10px 4px;
+            }
+            .admin-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-dashboard-container">
+        <!-- Header -->
+        <div class="admin-header">
+            <div class="admin-logo">
+                <span class="admin-logo-square"></span>
+                <span>Admin Dashboard</span>
+            </div>
+            <div class="admin-header-actions">
+                <button class="notification-button">
+                    <img src="../../icons/notification.png" alt="Notification" class="notification-icon">
+                    Notifications
+                </button>
+                <img src="../../icons/profile-icon.png" alt="Profile" class="profile-icon">
+                <button class="logout-btn" id="logout-btn">Logout</button>
+            </div>
+        </div>
+        <div class="admin-main">
+            <!-- Stats Row -->
+            <div class="admin-stats-row">
+                <div class="admin-stat-card">
+                    <div class="admin-stat-icon"><img src="../../icons/users.png" width="28" height="28" alt="Users"></div>
+                    <div class="admin-stat-info">
+                        <div class="admin-stat-label">Total Users</div>
+                        <div class="admin-stat-value">1,247</div>
+                    </div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-icon"><img src="../../icons/points.png" width="28" height="28" alt="Points"></div>
+                    <div class="admin-stat-info">
+                        <div class="admin-stat-label">Points Distributed</div>
+                        <div class="admin-stat-value">45,892</div>
+                    </div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-icon"><img src="../../icons/market.png" width="28" height="28" alt="Shop"></div>
+                    <div class="admin-stat-info">
+                        <div class="admin-stat-label">Shop Items</div>
+                        <div class="admin-stat-value">156</div>
+                    </div>
+                </div>
+                <div class="admin-stat-card">
+                    <div class="admin-stat-icon"><img src="../../icons/overview.png" width="28" height="28" alt="Growth"></div>
+                    <div class="admin-stat-info">
+                        <div class="admin-stat-label">Monthly Growth</div>
+                        <div class="admin-stat-value">+12%</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Management Row -->
+            <div class="admin-management-row">
+                <!-- Points Management -->
+                <div class="admin-management-card">
+                    <h2>Points Management</h2>
+                    <hr>
+                    <label for="user-select">Select User</label>
+                    <select id="user-select">
+                        <option value="" disabled selected>Select a user</option>
+                        <option value="user1">John Doe (john@example.com)</option>
+                        <option value="user2">Jane Smith (jane@example.com)</option>
+                    </select>
+                    <div class="admin-form-row">
+                        <div class="admin-form-group">
+                            <label for="points-amount">Points Amount</label>
+                            <input type="number" id="points-amount" placeholder="Enter points">
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="points-action">Action</label>
+                            <select id="points-action">
+                                <option value="add">Add Points</option>
+                                <option value="remove">Remove Points</option>
+                            </select>
+                        </div>
+                    </div>
+                    <label for="points-reason">Reason</label>
+                    <input type="text" id="points-reason" placeholder="Optional reason for points adjustment">
+                    <button class="btn btn-black" id="update-points-btn"
+                        data-api-endpoint="/api/points/update"
+                        data-api-action="updatePoints">
+                        <img src="../../icons/add.png" alt="add" class="btn-icon" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"> Update Points
+                    </button>
+                </div>
+                <!-- Shop Management -->
+                <div class="admin-management-card">
+                    <h2>Shop Management</h2>
+                    <hr>
+                    <label for="item-name">Item Name</label>
+                    <input type="text" id="item-name" placeholder="Enter item name">
+                    <div class="admin-form-row">
+                        <div class="admin-form-group">
+                            <label for="item-price">Price (Points)</label>
+                            <input type="number" id="item-price" placeholder="100">
+                        </div>
+                        <div class="admin-form-group">
+                            <label for="item-stock">Stock Quantity</label>
+                            <input type="number" id="item-stock" placeholder="50">
+                        </div>
+                    </div>
+                    <label for="item-description">Description</label>
+                    <input type="text" id="item-description" placeholder="Item description">
+                    <div class="button-row">
+                        <button class="btn btn-black" id="add-item-btn"
+                            data-api-endpoint="/api/shop/add"
+                            data-api-action="addItem">
+                            <img src="../../icons/add.png" alt="Add" class="btn-icon" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"> Add Item
+                        </button>
+                        <button class="btn btn-red" id="remove-stock-btn"
+                            data-api-endpoint="/api/shop/remove-stock"
+                            data-api-action="removeStock">
+                            <img src="../../icons/minus.png" alt="Remove" class="btn-icon" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;"> Remove Stock
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- User Enrollment -->
+            <div class="admin-enrollment-card">
+                <h2>User Enrollment</h2>
+                <hr>
+                <div class="notion-form-embed">
+                    <div>Embed your Notion enrollment form here</div>
+                    <div class="notion-form-preview">
+                        <div class="notion-form-preview-row" style="width:90%;"></div>
+                        <div class="notion-form-preview-row" style="width:100%;"></div>
+                        <div class="notion-form-preview-row" style="width:80%;"></div>
+                        <div class="notion-form-preview-row" style="width:100%;"></div>
+                        <div class="notion-form-preview-row" style="width:100%;"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Recent Activity -->
+            <div class="admin-activity-card">
+                <h2>Recent Activity</h2>
+                <hr>
+                <div class="activity-list">
+                    <div class="activity-item">
+                        <div class="activity-left">
+                            <div class="activity-icon"><img src="../../icons/coins.png" width="22" height="22" alt="Points"></div>
+                            <div class="activity-details">
+                                <span class="activity-text">John Doe received 50 points</span>
+                                <span class="activity-time">2 minutes ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-category">Points Added</div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-left">
+                            <div class="activity-icon"><img src="../../icons/market.png" width="22" height="22" alt="Shop"></div>
+                            <div class="activity-details">
+                                <span class="activity-text">New item "Premium Course" added to shop</span>
+                                <span class="activity-time">15 minutes ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-category">Shop Update</div>
+                    </div>
+                    <div class="activity-item">
+                        <div class="activity-left">
+                            <div class="activity-icon"><img src="../../icons/user-plus.png" width="22" height="22" alt="User Enrollment"></div>
+                            <div class="activity-details">
+                                <span class="activity-text">Jane Smith enrolled successfully</span>
+                                <span class="activity-time">1 hour ago</span>
+                            </div>
+                        </div>
+                        <div class="activity-category">New User</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Supabase initialization (replace with your Supabase URL and anon key)
+        const supabase = window.supabase.createClient(
+            'https://your-project.supabase.co', // TODO: replace with your Supabase URL
+            'public-anon-key' // TODO: replace with your Supabase anon key
+        );
+
+        // Logout functionality
+        document.getElementById('logout-btn').onclick = function() {
+            window.location.href = '../../index.html';
+        };
+
+        // API Call Limiter (debounce per button)
+        function debounce(fn, delay) {
+            let timer = null;
+            return function(...args) {
+                if (timer) return;
+                timer = setTimeout(() => { timer = null; }, delay);
+                fn.apply(this, args);
+            };
+        }
+        document.querySelectorAll('[data-api-endpoint]').forEach(btn => {
+            btn.addEventListener('click', debounce(function(e) {
+                btn.disabled = true;
+                // iOS-style button feedback
+                btn.animate([
+                    { transform: 'scale(1)' },
+                    { transform: 'scale(0.97)' },
+                    { transform: 'scale(1)' }
+                ], { duration: 180, easing: 'cubic-bezier(.4,0,.2,1)' });
+                btn.textContent = 'Processing...';
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.textContent = btn.dataset.apiAction === 'updatePoints' ? 'Update Points'
+                        : btn.dataset.apiAction === 'addItem' ? 'Add Item'
+                        : btn.dataset.apiAction === 'removeStock' ? 'Remove Stock'
+                        : btn.textContent;
+                }, 1200);
+            }, 1500));
+        });
+    </script>
+</body>
+</html>

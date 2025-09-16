@@ -1,0 +1,71 @@
+/* Redeemables Page – isolated styles */
+:root { --redeem-font: Poppins, Inter, system-ui, sans-serif; }
+.redeemables-page, .redeemables-page * { font-family: var(--redeem-font); }
+/* ========= GLOBAL RESET (scoped) ========= */
+.redeemables-page * { margin:0; padding:0; box-sizing:border-box; }
+/* ========= TOP BAR ========= */
+.redeemables-page .top-bar { display:flex; justify-content:space-between; align-items:center; padding:12px 24px; background:#fff; border-bottom:1px solid #e5e5e5; position:relative; }
+.redeemables-page .left-section { display:flex; align-items:center; gap:10px; }
+.redeemables-page .left-section .logo { font-size:1.5rem; }
+.redeemables-page .left-section h1 { font-size:1.25rem; font-weight:600; color:#000; }
+.redeemables-page .right-section { display:flex; align-items:center; gap:16px; }
+.redeemables-page .points-box { background:#f1f1f1; padding:6px 12px; border-radius:8px; font-size:.95rem; font-weight:500; color:#000; }
+.redeemables-page .profile-placeholder { width:36px; height:36px; border-radius:50%; border:2px solid #000; background:#fff; cursor:pointer; transition:background .2s; }
+.redeemables-page .profile-placeholder:hover { background:#f1f1f1; }
+.redeemables-page .profile-container { position:relative; }
+.redeemables-page .dropdown-menu { display:none; flex-direction:column; position:absolute; right:0; top:44px; background:#f1f1f1; border:1px solid #e5e5e5; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,.1); overflow:hidden; z-index:10; }
+.redeemables-page .dropdown-menu a { padding:10px 16px; text-decoration:none; color:#000; font-size:.95rem; transition:background .2s; }
+.redeemables-page .dropdown-menu a:hover { background:#e5e5e5; }
+.redeemables-page .dropdown-menu.show { display:flex; }
+/* ========= SECTION 1 ========= */
+.redeemables-page .section-1 { display:flex; flex-direction:column; align-items:center; padding:48px 24px 40px; background:#fff; gap:32px; }
+.redeemables-page .thankyou-card { background:#f5f5f5; border-radius:12px; padding:28px 20px; width:100%; max-width:1100px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.redeemables-page .heart-icon { font-size:2.5rem; color:#000; }
+.redeemables-page .thankyou-card h2 { font-size:1.6rem; font-weight:600; color:#000; margin-bottom:4px; }
+.redeemables-page .thankyou-card h4 { font-size:1rem; font-weight:400; color:#333; line-height:1.4; }
+.redeemables-page .redeem-heading { text-align:center; margin-top:-8px; }
+.redeemables-page .redeem-heading h1 { font-size:2rem; font-weight:400; color:#000; margin-bottom:6px; }
+.redeemables-page .redeem-heading p { font-size:1.05rem; font-weight:400; color:#555; }
+/* ========= SECTION 2 ========= */
+.redeemables-page .section-2 { background:#f5f5f5; padding:56px 24px 44px; }
+.redeemables-page .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; max-width:1100px; margin:0 auto; }
+.redeemables-page .stat-card { position:relative; overflow:hidden; background:#fff; border-radius:12px; padding:14px 18px; display:flex; justify-content:space-between; align-items:center; height:90px; box-shadow:0 2px 5px rgba(0,0,0,.05); transition:transform .2s, box-shadow .2s; }
+.redeemables-page .stat-card:before { content:""; position:absolute; inset:0; background:linear-gradient(120deg,rgba(255,255,255,0) 0%,rgba(0,0,0,0.03) 100%); opacity:0; transition:opacity .4s; }
+.redeemables-page .stat-card:hover { transform:translateY(-4px); box-shadow:0 4px 10px rgba(0,0,0,.08); }
+.redeemables-page .stat-card:hover:before { opacity:1; }
+/* ========= SECTION 3 ========= */
+.redeemables-page .section-3 { background:#f5f5f5; padding:50px 24px 60px; }
+.redeemables-page .section-3-content { max-width:1100px; margin:0 auto; }
+.redeemables-page .shop-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+.redeemables-page .shop-header h2 { font-size:1.5rem; font-weight:600; color:#222; }
+.redeemables-page .shop-nav { display:flex; gap:12px; }
+.redeemables-page .shop-nav .pill { padding:6px 14px; border-radius:20px; background:#f0f0f0; border:none; cursor:pointer; font-size:.9rem; transition:all .2s; }
+.redeemables-page .shop-nav .pill:hover, .redeemables-page .shop-nav .pill.active { background:#000; color:#fff; }
+.redeemables-page .shop-nav .pill { transition:background .25s, color .25s, box-shadow .25s; }
+.redeemables-page .shop-nav .pill.active { box-shadow:0 4px 10px rgba(0,0,0,.15); }
+.redeemables-page .shop-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+.redeemables-page .shop-card { background:#fff; border-radius:10px; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 1px 4px rgba(0,0,0,.05); transition:transform .25s cubic-bezier(.4,0,.2,1), box-shadow .25s; }
+.redeemables-page .shop-card:hover { transform:translateY(-4px); box-shadow:0 6px 18px rgba(0,0,0,.08); }
+.redeemables-page .shop-img { background:#d4d4d4; height:150px; display:flex; align-items:center; justify-content:center; font-size:.95rem; font-weight:500; color:#555; }
+.redeemables-page .shop-details { padding:16px; }
+.redeemables-page .shop-title { font-size:1rem; font-weight:600; color:#222; margin-bottom:4px; }
+.redeemables-page .shop-desc { font-size:.85rem; color:#666; margin-bottom:12px; }
+.redeemables-page .shop-footer { display:flex; justify-content:space-between; align-items:center; }
+.redeemables-page .points { font-size:.95rem; font-weight:500; color:#333; }
+.redeemables-page .redeem-btn { padding:6px 12px; border:none; border-radius:6px; font-size:.9rem; cursor:pointer; transition:.2s; }
+.redeemables-page .redeem-btn:not(.disabled) { background:#000; color:#fff; }
+.redeemables-page .redeem-btn.disabled { background:#bfbfbf; color:#fff; cursor:not-allowed; }
+.redeemables-page .no-rewards { background:#fff; border-radius:10px; padding:18px; text-align:center; color:#666; grid-column:1 / -1; }
+/* Back button styles */
+.redeemables-page .back-btn { background:#000; color:#fff; padding:8px 16px; border-radius:24px; font-size:.85rem; font-weight:500; text-decoration:none; display:inline-flex; align-items:center; gap:4px; line-height:1; transition:background .25s, transform .25s, box-shadow .25s; box-shadow:0 4px 12px rgba(0,0,0,.15); }
+.redeemables-page .back-btn:hover { background:#111; }
+.redeemables-page .back-btn:active { transform:translateY(1px); }
+/* Responsive adjustments */
+@media (max-width:1000px){ .redeemables-page .stats-grid { grid-template-columns:repeat(2,1fr); } .redeemables-page .shop-grid { grid-template-columns:repeat(2,1fr); } }
+@media (max-width:620px){ .redeemables-page .stats-grid { grid-template-columns:1fr; } .redeemables-page .shop-grid { grid-template-columns:1fr; } .redeemables-page .top-bar { flex-wrap:wrap; gap:12px; } }
+/* Animations */
+@keyframes fadeInUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+.fade-in-up { animation:fadeInUp .6s cubic-bezier(.4,0,.2,1) forwards; }
+/* Logo styles */
+.redeemables-page .brand-logo { width:38px; height:38px; object-fit:contain; image-rendering:-webkit-optimize-contrast; border-radius:50%; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.08); padding:4px; }
+.redeemables-page .brand-title { letter-spacing:.5px; }

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create your account</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+    <script src="config.js"></script>
+    <script src="supabase-client.js"></script>
+</head>
+<body class="auth-page">
+    <div class="transition-overlay"></div>
+    <div class="signup-center">
+        <div class="signup-card">
+            <div class="signup-logo">
+                <img src="icons/logo.png" alt="CEREAL Logo">
+            </div>
+            <div class="signup-title">Create your account</div>
+            <div class="signup-subtitle">Sign up to get started</div>
+            <form class="signup-form" id="signup-form" autocomplete="on">
+                <div class="signup-error" id="signup-error"></div>
+                <label class="signup-label" for="name">Name</label>
+                <input class="signup-input" type="text" id="name" name="name" placeholder="Enter your name" required>
+                <label class="signup-label" for="email">Email</label>
+                <input class="signup-input" type="email" id="email" name="email" placeholder="Enter your email" required>
+                <label class="signup-label" for="password">Password</label>
+                <input class="signup-input" type="password" id="password" name="password" placeholder="Create a password" required>
+                <label class="signup-label" for="confirm-password">Confirm Password</label>
+                <input class="signup-input" type="password" id="confirm-password" name="confirm-password" placeholder="Confirm your password" required>
+                <button type="submit" class="btn btn-primary">Sign up</button>
+            </form>
+            <div class="signup-divider"><span>Or continue with</span></div>
+            <button type="button" class="google-btn" id="google-signup-btn">
+                <img src="icons/google.png" alt="Google" class="google-icon"><span>Google</span>
+            </button>
+            <div class="signup-footer">
+                Already have an account? <a href="index.html">Sign in</a>
+            </div>
+        </div>
+    </div>
+    <script type="module">
+    import { signUp, signInWithProvider, getSession, determineHome } from './js/api-client.js';
+      import { logError } from './js/logger.js';
+
+      const overlay = document.querySelector('.transition-overlay');
+      const center = document.querySelector('.signup-center');
+      window.addEventListener('load', () => { overlay.classList.add('expand'); setTimeout(async ()=>{ overlay.style.display='none'; center.classList.add('visible'); await checkExistingSession(); },600); });
+
+    async function checkExistingSession(){ const session = await getSession(); if(!session) return; const home = await determineHome(); window.location.href = home; }
+
+      document.getElementById('signup-form').addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirm = document.getElementById('confirm-password').value;
+        const errorDiv = document.getElementById('signup-error'); errorDiv.style.display='none';
+        if(password.length<6){ errorDiv.textContent='Password must be at least 6 characters.'; errorDiv.style.display='block'; return; }
+        if(password!==confirm){ errorDiv.textContent='Passwords do not match.'; errorDiv.style.display='block'; return; }
+        try { await signUp({ name, email, password }); alert('Signup successful! Please confirm your email.'); window.location.href='index.html'; } catch(err){ errorDiv.textContent=err.message||'Signup failed.'; errorDiv.style.display='block'; logError('signup', err); }
+      });
+
+      document.getElementById('google-signup-btn').addEventListener('click', async ()=>{ try { await signInWithProvider('google'); } catch(e){ logError('oauth_google_signup', e); } });
+    </script>
+</body>
+</html>

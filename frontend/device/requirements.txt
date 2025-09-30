@@ -1,0 +1,5 @@
+opencv-python
+pyserial
+python-dotenv
+requests
+inference-sdk

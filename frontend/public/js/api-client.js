@@ -24,17 +24,26 @@ export async function selectTable({ table, columns='*', filters=[], order=null, 
 
 // Admin email shortcut
 const ADMIN_EMAIL = 'seerealthesis@gmail.com';
-export async function isMyEmailAdmin(){ const sb = await getClient(); const { data } = await sb.auth.getUser(); return data?.user?.email === ADMIN_EMAIL; }
+export async function isMyEmailAdmin(){
+  const sb = await getClient();
+  const { data } = await sb.auth.getUser();
+  if(data?.user?.email === ADMIN_EMAIL) return true; // legacy shortcut
+  // Also check profile role for flexibility
+  try {
+    const { data: prof } = await sb.from('profiles').select('role').eq('id', data?.user?.id).maybeSingle();
+    return prof?.role === 'admin';
+  } catch(e){ return false; }
+}
 export async function fetchMyProfile(){ const sb = await getClient(); const { data: u } = await sb.auth.getUser(); if(!u?.user) return null; const { data } = await sb.from('profiles').select('id,name,role,points,avatar_url').eq('id', u.user.id).maybeSingle(); return data; }
 export async function fetchProfileRole(){ const p = await fetchMyProfile(); return p?.role || null; }
 
 export async function determineHome(){
-  // If admin email, send to admin dash; otherwise user dash
-  const adminByEmail = await isMyEmailAdmin();
-  if(adminByEmail) return 'pages/admin/admin-dashboard.html';
-  // Fallback to profile role check
+  // Direct role check covers both email legacy and explicit role
   const role = await fetchProfileRole();
   if(role === 'admin') return 'pages/admin/admin-dashboard.html';
+  // legacy email fallback (should be redundant now)
+  const adminByEmail = await isMyEmailAdmin();
+  if(adminByEmail) return 'pages/admin/admin-dashboard.html';
   return 'pages/user-dashboard.html';
 }
 

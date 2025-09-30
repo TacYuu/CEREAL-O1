@@ -1,39 +1,52 @@
 /**
  * Lightweight config bootstrapping for the browser.
- * Attempts to fetch Supabase URL and anon key from the serverless function
- * at /api/supabase-config. Falls back to window env if present.
+ * Fallback order (stable / static first):
+ *  1. /supabase.json (committed static file for predictable builds)
+ *  2. <meta name="supabase-url" / name="supabase-anon-key"> tags
+ *  3. Window globals (NEXT_PUBLIC_*) injected by hosting platform
+ *  4. Serverless function /api/supabase-config (optional dynamic override)
+ * If everything fails we throw an explicit error early so UI does not silently show 0 data.
  */
 (function(){
   const cache = {};
   async function fetchConfig(){
     if(cache.cfg) return cache.cfg;
+
+    // 1. Static JSON (preferred for fallback stability)
+    try {
+      const rStatic = await fetch('/supabase.json', { cache:'no-store' });
+      if(rStatic.ok){
+        const j = await rStatic.json();
+        if(j.url && j.anonKey){ cache.cfg = { url:j.url, anonKey:j.anonKey }; expose(cache.cfg); return cache.cfg; }
+      }
+    } catch {}
+
+    // 2. Meta tags
+    const metaUrl = (typeof document!=='undefined' && document.querySelector('meta[name="supabase-url"]'))?.content;
+    const metaAnon = (typeof document!=='undefined' && document.querySelector('meta[name="supabase-anon-key"]'))?.content;
+    if(metaUrl && metaAnon){ cache.cfg = { url:metaUrl, anonKey:metaAnon }; expose(cache.cfg); return cache.cfg; }
+
+    // 3. Window globals
+    const envUrl = window.NEXT_PUBLIC_SUPABASE_URL || window.SUPABASE_URL;
+    const envAnon = window.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.SUPABASE_ANON_KEY;
+    if(envUrl && envAnon){ cache.cfg = { url:envUrl, anonKey:envAnon }; expose(cache.cfg); return cache.cfg; }
+
+    // 4. Serverless function (last because on purely static deploys it 404s)
     try {
       const res = await fetch('/api/supabase-config', { cache:'no-store' });
-      if(!res.ok) throw new Error('Failed to load Supabase config');
-      const { url, anonKey } = await res.json();
-      if(!url || !anonKey) throw new Error('Incomplete Supabase config');
-      cache.cfg = { url, anonKey };
-    } catch {
-      // Try optional static JSON fallback first
-      try {
-        const r2 = await fetch('/supabase.json', { cache:'no-store' });
-        if(r2.ok){
-          const { url, anonKey } = await r2.json();
-          if(url && anonKey){ cache.cfg = { url, anonKey }; window.SUPABASE_URL=url; window.SUPABASE_ANON_KEY=anonKey; return cache.cfg; }
-        }
-      } catch {}
-      // Fallbacks: meta tags, then window globals
-      const metaUrl = (typeof document!=='undefined' && document.querySelector('meta[name="supabase-url"]'))?.content;
-      const metaAnon = (typeof document!=='undefined' && document.querySelector('meta[name="supabase-anon-key"]'))?.content;
-      const url = metaUrl || window.NEXT_PUBLIC_SUPABASE_URL || window.SUPABASE_URL;
-      const anonKey = metaAnon || window.NEXT_PUBLIC_SUPABASE_ANON_KEY || window.SUPABASE_ANON_KEY;
-      if(!url || !anonKey) throw new Error('Supabase config missing. Ensure Vercel integration has NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, or add /supabase.json, or add <meta name="supabase-url"> & <meta name="supabase-anon-key"> tags.');
-      cache.cfg = { url, anonKey };
-    }
-    // expose globals for optional direct use
-    window.SUPABASE_URL = cache.cfg.url;
-    window.SUPABASE_ANON_KEY = cache.cfg.anonKey;
-    return cache.cfg;
+      if(res.ok){
+        const { url, anonKey } = await res.json();
+        if(url && anonKey){ cache.cfg = { url, anonKey }; expose(cache.cfg); return cache.cfg; }
+      }
+    } catch {}
+
+    throw new Error('Supabase configuration could not be resolved (checked supabase.json, meta tags, env globals, api function).');
   }
+
+  function expose(cfg){
+    window.SUPABASE_URL = cfg.url;
+    window.SUPABASE_ANON_KEY = cfg.anonKey;
+  }
+
   window.__getSupabaseConfig = fetchConfig;
 })();

@@ -314,9 +314,10 @@
         row.style.display = 'flex';
         row.style.alignItems = 'center';
         row.style.height = '48px';
+        const placeholderImg = '<div style="width:36px;height:36px;background:#eee;border-radius:6px;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect width="20" height="20" rx="4" fill="#ccc"/><text x="10" y="14" text-anchor="middle" fill="#fff" font-size="10">?</text></svg></div>';
         row.innerHTML = `
           <div class="cell" style="width:80px;min-width:80px;max-width:80px;display:flex;align-items:center;justify-content:center;">
-            ${item.photo ? `<img src="${escapeHtml(item.photo)}" alt="photo" style="width:36px;height:36px;object-fit:cover;border-radius:6px;">` : '<span style="color:#bbb;font-size:13px;display:flex;align-items:center;justify-content:center;height:36px;">No photo</span>'}
+            ${item.photo ? `<img src="${escapeHtml(item.photo)}" alt="photo" style="width:36px;height:36px;object-fit:cover;border-radius:6px;">` : placeholderImg}
           </div>
           <div class="cell" style="width:140px;min-width:140px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;">${escapeHtml(item.name||'—')}</div>
           <div class="cell" style="width:220px;min-width:220px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;">${escapeHtml(item.description||'')}</div>
@@ -337,10 +338,22 @@
     }
 
     async function uploadShopPhoto(file){
-      // TODO: Implement upload to Supabase Storage or another service
-      // For now, just return empty string
-      // You can use sb.storage.from('shop-photos').upload(...)
-      return '';
+      // Upload photo to Supabase Storage bucket 'shop-photos'
+      const sb = await window.getSupabase();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `shopitem_${Date.now()}_${Math.floor(Math.random()*10000)}.${fileExt}`;
+      const filePath = `${fileName}`;
+      const { data, error } = await sb.storage.from('shop-photos').upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+      if(error) {
+        toast('Photo upload failed','error');
+        return '';
+      }
+      // Get public URL
+      const { data: urlData } = sb.storage.from('shop-photos').getPublicUrl(filePath);
+      return urlData?.publicUrl || '';
     }
 
     async function onRemoveStock(){

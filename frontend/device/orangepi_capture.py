@@ -340,11 +340,37 @@ def _attempt_award_rpc(payload: dict) -> bool:
     return False
 
 
+
+def get_profile_id_by_rfid(rfid_uid: str) -> str | None:
+    """Look up profile id in Supabase by RFID UID."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        logger.warning("Supabase config missing for profile lookup")
+        return None
+    url = f"{SUPABASE_URL}/rest/v1/profiles?rfid_uid=eq.{rfid_uid}"
+    headers = {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation"
+    }
+    try:
+        resp = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        data = resp.json()
+        if data and isinstance(data, list) and "id" in data[0]:
+            return data[0]["id"]
+        else:
+            logger.info(f"No profile found for RFID UID {rfid_uid}")
+            return None
+    except Exception as e:
+        logger.warning(f"Profile lookup failed for RFID UID {rfid_uid}: {e}")
+        return None
+
 def award_points_via_rfid(rfid_uid: str, points: int, reason: str = "auto_classification", top_class: str | None = None):
     if not AWARD_POINTS_ENABLED:
         logger.debug("Award disabled by config")
         return
-    if not (SUPABASE_URL and SUPABASE_SERVICE_KEY and DEVICE_DEVICE_SECRET):
+    if not (SUPABASE_URL and SUPABASE_SERVICE_KEY):
         logger.debug("Supabase award skipped: missing config")
         return
     if not _eligible_for_award(rfid_uid):
@@ -352,29 +378,20 @@ def award_points_via_rfid(rfid_uid: str, points: int, reason: str = "auto_classi
     # Adjust points by class if mapping provided
     if top_class and top_class in CLASS_POINTS_MAP:
         points = CLASS_POINTS_MAP[top_class]
-    payload_body_v2 = {
-        "in_rfid_uid": rfid_uid,
+    profile_id = get_profile_id_by_rfid(rfid_uid)
+    if not profile_id:
+        logger.info(f"Skipping award: no profile for RFID UID {rfid_uid}")
+        return
+    payload_body = {
+        "in_id": profile_id,
         "in_points": points,
-        "in_reason": reason,
-        "in_device_id": DEVICE_ID,
-        "in_device_secret": DEVICE_DEVICE_SECRET,
-    }
-    payload_body_v1 = {
-        "in_rfid_uid": rfid_uid,
-        "in_points": points,
-        "in_reason": reason,
-        "in_device_secret": DEVICE_DEVICE_SECRET,
+        "in_reason": reason
     }
     payload = {
-        'body': payload_body_v2,
+        'body': payload_body,
         '_endpoints': [("device_award_points_v2", True), ("device_award_points", False)]
     }
     if _attempt_award_rpc(payload):
-        _record_award_timestamp(rfid_uid)
-        return
-    # fallback: try legacy body
-    payload_legacy = {'body': payload_body_v1, '_endpoints': [("device_award_points", False)]}
-    if _attempt_award_rpc(payload_legacy):
         _record_award_timestamp(rfid_uid)
         return
     # queue for later

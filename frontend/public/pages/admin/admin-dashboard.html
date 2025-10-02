@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CEREAL – Admin Dashboard</title>
-  <!-- Supabase meta fallbacks -->
-  <meta name="supabase-url" content="https://yxbxqvpgoydcnqhtpxxg.supabase.co">
-  <meta name="supabase-anon-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4YnhxdnBnb3lkY25xaHRweHhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc5OTQ3MTgsImV4cCI6MjA3MzU3MDcxOH0.Zr-udVzC0bLevlGUW7F3KCujCLusaEKmEXR3QlC0Kgs">
   <link rel="stylesheet" href="../../styles.css">
   <link rel="stylesheet" href="./admin.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
@@ -74,6 +71,7 @@
         <button id="updatePointsBtn" class="btn btn-primary btn-icon"><img src="../../icons/points.png" width="16"> Update Points</button>
       </div>
 
+
       <!-- Shop Management -->
       <div class="card">
         <h2>Shop Management</h2>
@@ -85,11 +83,15 @@
         <div class="form-row">
           <div class="form-col" style="grid-column:1/-1;"><label for="rewardDescription">Description</label><input type="text" id="rewardDescription" placeholder="Item description"></div>
         </div>
+        <div class="form-row">
+          <div class="form-col" style="grid-column:1/-1;"><label for="rewardPhoto">Photo</label><input type="file" id="rewardPhoto" accept="image/*"></div>
+        </div>
         <div class="form-row" style="grid-template-columns: 1fr 1fr;">
           <button id="addItemBtn" class="btn btn-primary btn-icon btn-block"><img src="../../icons/add.png" width="16"> Add Item</button>
           <button id="removeStockBtn" class="btn btn-secondary btn-icon btn-block"><img src="../../icons/minus.png" width="16"> Remove Stock</button>
         </div>
       </div>
+
 
       <!-- Users & Enrollment (Unified) -->
       <div class="card" style="grid-column:1/-1;">
@@ -110,6 +112,22 @@
         </div>
       </div>
 
+      <!-- Shop Item List -->
+      <div class="card" style="grid-column:1/-1;">
+        <h2>Shop Items</h2>
+        <div class="table shop-items" id="shopItemsTable">
+          <div class="thead">
+            <div class="cell">Photo</div>
+            <div class="cell">Name</div>
+            <div class="cell">Description</div>
+            <div class="cell">Cost</div>
+            <div class="cell">Stock</div>
+            <div class="cell">Actions</div>
+          </div>
+          <div id="shopItemsBody"></div>
+        </div>
+      </div>
+
       
 
       <!-- Recent Activity -->
@@ -124,7 +142,7 @@
 
   <script type="module">
   import { ensureSessionRedirect, listUsers, setUserRole, updateUserRfid } from '../../js/services/users-service.js';
-  import { createReward, updateRewardStock } from '../../js/services/rewards-service.js';
+  import { createReward, updateRewardStock, listAllRewards } from '../../js/services/rewards-service.js';
     import { adminAdjustPoints, getRecentClaimsCount } from '../../js/services/points-service.js';
     import { selectTable, isMyEmailAdmin } from '../../js/api-client.js';
     import { logout as authLogout } from '../../js/auth.js';
@@ -142,10 +160,6 @@
       if(!session) return; currentUserId = session.user.id;
       if(!(await isMyEmailAdmin())){ location.href = '../user-dashboard.html'; return; }
       await Promise.all([renderUsersTable(), renderStats(), renderActivity()]);
-      // Optional debug panel
-      if(new URLSearchParams(location.search).get('debug')==='1'){
-        await renderDebugPanel();
-      }
       wireHandlers();
     }
 
@@ -153,6 +167,17 @@
       document.getElementById('updatePointsBtn').addEventListener('click', onUpdatePoints);
       document.getElementById('addItemBtn').addEventListener('click', onAddItem);
       document.getElementById('removeStockBtn').addEventListener('click', onRemoveStock);
+      document.getElementById('shopItemsBody').addEventListener('click', async (e)=>{
+        const btn = e.target.closest('[data-act="delete"]');
+        if(btn){
+          const id = btn.dataset.id;
+          if(confirm('Delete this item?')){
+            await deleteShopItem(id);
+            await renderShopItems();
+            toast('Item deleted','success');
+          }
+        }
+      });
   document.getElementById('userSearch').addEventListener('input', (e)=>{ userFilter = (e.target.value||'').toLowerCase(); renderUsersTable(); });
       const userScan = document.getElementById('userScan');
       userScan.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); handleUserScan(userScan.value); }});
@@ -161,13 +186,7 @@
     }
 
     async function renderUsersTable(){
-      let debugInfo = null;
-      try {
-        cachedUsers = await listUsers();
-      } catch(e){
-        cachedUsers = [];
-        debugInfo = { listUsersError: e.message || String(e) };
-      }
+      cachedUsers = await listUsers();
       const sel = document.getElementById('userSelect'); sel.innerHTML = '<option value="">Select a user</option>';
       cachedUsers.forEach(u=>{ const o=document.createElement('option'); o.value=u.id; o.textContent = `${u.name||u.email} (${u.points} pts)`; sel.appendChild(o); });
       // Populate scan/type suggestions
@@ -198,9 +217,6 @@
         `;
         body.appendChild(row);
       });
-      if(debugInfo && document.getElementById('debugPanel')){
-        document.getElementById('debugPanel').dataset.listUsersError = debugInfo.listUsersError;
-      }
       // Event delegation for row actions
       document.getElementById('usersTable').onclick = async (e)=>{
         const row = e.target.closest('.row'); if(!row) return; const userId = row.dataset.id;
@@ -268,16 +284,53 @@
 
     
 
+
     async function onAddItem(){
       const name = document.getElementById('rewardName').value.trim();
       const description = document.getElementById('rewardDescription').value.trim();
       const cost = parseInt(document.getElementById('rewardCost').value||'0',10);
       const stock = parseInt(document.getElementById('rewardStock').value||'0',10);
+      const photoInput = document.getElementById('rewardPhoto');
+      let photoUrl = '';
+      if(photoInput.files && photoInput.files[0]){
+        // Upload photo to Supabase Storage or another service
+        photoUrl = await uploadShopPhoto(photoInput.files[0]);
+      }
       if(!name) return alert('Enter item name');
-      await createReward({ name, description, cost, stock });
-  await Promise.all([renderStats(), renderActivity(), renderUsersTable()]);
-      document.getElementById('rewardName').value=''; document.getElementById('rewardDescription').value='';
+      await createReward({ name, description, cost, stock, photo: photoUrl });
+      await Promise.all([renderStats(), renderActivity(), renderUsersTable(), renderShopItems()]);
+      document.getElementById('rewardName').value=''; document.getElementById('rewardDescription').value=''; photoInput.value='';
       toast('Item added','success');
+    }
+    async function renderShopItems(){
+      const items = await listAllRewards();
+      const body = document.getElementById('shopItemsBody');
+      body.innerHTML = '';
+      items.forEach(item=>{
+        const row = document.createElement('div'); row.className = 'row';
+        row.innerHTML = `
+          <div class="cell">${item.photo ? `<img src="${escapeHtml(item.photo)}" alt="photo" style="width:40px;height:40px;object-fit:cover;">` : ''}</div>
+          <div class="cell">${escapeHtml(item.name||'')}</div>
+          <div class="cell">${escapeHtml(item.description||'')}</div>
+          <div class="cell">${item.cost}</div>
+          <div class="cell">${item.stock}</div>
+          <div class="cell"><button class="btn btn-danger btn-xxs" data-act="delete" data-id="${item.id}">Delete</button></div>
+        `;
+        body.appendChild(row);
+      });
+    }
+
+    async function deleteShopItem(id){
+      const sb = await window.getSupabase();
+      const { error } = await sb.from('rewards').delete().eq('id', id);
+      if(error) throw error;
+    }
+
+    async function uploadShopPhoto(file){
+      // TODO: Implement upload to Supabase Storage or another service
+      // For now, just return empty string
+      // You can use sb.storage.from('shop-photos').upload(...)
+      return '';
     }
 
     async function onRemoveStock(){
@@ -292,16 +345,12 @@
 
     async function renderStats(){
       const sb = await window.getSupabase();
-      let usersCountRes, sumPointsRes, rewardsCountRes, transactions;
-      let statsError = null;
-      try {
-        [usersCountRes, sumPointsRes, rewardsCountRes, transactions] = await Promise.all([
-          sb.from('profiles').select('id', { count: 'exact', head: true }),
-          sb.from('profiles').select('sum(points)'),
-          sb.from('rewards').select('id', { count: 'exact', head: true }),
-          selectTable({ table:'point_transactions', columns:'amount,created_at', limit:5000 })
-        ]);
-      } catch(e){ statsError = e.message || String(e); }
+      const [usersCountRes, sumPointsRes, rewardsCountRes, transactions] = await Promise.all([
+        sb.from('profiles').select('id', { count: 'exact', head: true }),
+        sb.from('profiles').select('sum(points)'),
+        sb.from('rewards').select('id', { count: 'exact', head: true }),
+        selectTable({ table:'point_transactions', columns:'amount,created_at', limit:5000 })
+      ]);
       const usersCount = usersCountRes?.count ?? 0;
       const sumPoints = Array.isArray(sumPointsRes?.data) ? (sumPointsRes.data[0]?.sum ?? 0) : 0;
       const shopItems = rewardsCountRes?.count ?? 0;
@@ -320,10 +369,6 @@
       const fmt = (growth>=0? '+' : '') + Math.round(growth).toString() + '%';
       const el = document.getElementById('monthlyGrowth');
       el.textContent = fmt; el.classList.toggle('positive', growth>=0); el.classList.toggle('negative', growth<0);
-      if(document.getElementById('debugPanel')){
-        document.getElementById('debugPanel').dataset.usersCountRaw = usersCountRes?.count;
-        document.getElementById('debugPanel').dataset.statsError = statsError || '';
-      }
     }
 
     async function renderEnrollment(){
@@ -369,35 +414,8 @@
       setTimeout(()=>{ d.style.opacity='0'; d.style.transform='translateY(8px)'; d.style.transition='all .2s ease'; setTimeout(()=>host.removeChild(d), 200); }, 1800);
     }
 
-    initAdmin();
-    async function renderDebugPanel(){
-      if(document.getElementById('debugPanel')) return;
-      const sb = await window.getSupabase();
-      const wrap = document.createElement('div');
-      wrap.id='debugPanel';
-      wrap.style.cssText='position:fixed;bottom:8px;right:8px;z-index:9999;background:#111;color:#fff;font:12px monospace;padding:8px;max-width:420px;max-height:55vh;overflow:auto;border:1px solid #444;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.4)';
-      wrap.innerHTML='<div style="font-weight:bold;margin-bottom:4px;">Admin Debug</div><div id="debugContent">Loading...</div>';
-      document.body.appendChild(wrap);
-      try {
-        const { data: userData } = await sb.auth.getUser();
-        const me = userData?.user;
-        const { data: prof, error: profErr } = await sb.from('profiles').select('id,email,role').eq('id', me?.id).maybeSingle();
-        const all = await sb.from('profiles').select('id,email,role');
-        const headCount = await sb.from('profiles').select('id', { count:'exact', head:true });
-        const html = [
-          `<div>Session UID: ${me?.id||'—'}</div>`,
-          `<div>Session Email: ${me?.email||'—'}</div>`,
-          `<div>Profile Role: ${prof?.role||'—'} ${profErr? '(prof error:'+escapeHtml(profErr.message||profErr)+')':''}</div>`,
-          `<div>Head Count: ${headCount?.count ?? '0'} (error: ${headCount?.error?escapeHtml(headCount.error.message):'none'})</div>`,
-          `<div>Rows Returned: ${Array.isArray(all.data)? all.data.length : 'ERR'}</div>`,
-          all.error? `<div style='color:#f66'>Select Error: ${escapeHtml(all.error.message)}</div>`:'',
-          Array.isArray(all.data)? `<pre style='white-space:pre-wrap;background:#222;padding:4px;border-radius:4px;max-height:180px;overflow:auto;'>${escapeHtml(JSON.stringify(all.data,null,2))}</pre>`:''
-        ].join('');
-        document.getElementById('debugContent').innerHTML = html;
-      } catch(e){
-        document.getElementById('debugContent').textContent = 'Debug load error: '+ (e.message||String(e));
-      }
-    }
+  initAdmin();
+  renderShopItems();
   </script>
 </body>
 </html>

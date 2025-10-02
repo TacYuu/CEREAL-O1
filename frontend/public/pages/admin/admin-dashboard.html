@@ -313,16 +313,17 @@
         row.className = 'row';
         row.style.display = 'flex';
         row.style.alignItems = 'center';
+        row.style.height = '48px';
         row.innerHTML = `
-          <div class="cell" style="display:flex;align-items:center;justify-content:center;min-width:48px;">
-            ${item.photo ? `<img src="${escapeHtml(item.photo)}" alt="photo" style="width:32px;height:32px;object-fit:cover;border-radius:4px;">` : '<span style="color:#bbb;font-size:12px;">No photo</span>'}
+          <div class="cell" style="display:flex;align-items:center;justify-content:center;width:60px;">
+            ${item.photo ? `<img src="${escapeHtml(item.photo)}" alt="photo" style="width:36px;height:36px;object-fit:cover;border-radius:6px;">` : '<span style="color:#bbb;font-size:13px;display:inline-block;width:36px;text-align:center;">No photo</span>'}
           </div>
-          <div class="cell" style="min-width:120px;">${escapeHtml(item.name||'—')}</div>
-          <div class="cell" style="min-width:180px;">${escapeHtml(item.description||'')}</div>
-          <div class="cell" style="min-width:60px;text-align:right;">${item.cost}</div>
-          <div class="cell" style="min-width:60px;text-align:right;">${item.stock}</div>
-          <div class="cell" style="min-width:80px;text-align:center;">
-            <button class="btn btn-danger btn-xxs" style="padding:2px 10px;font-size:13px;" data-act="delete" data-id="${item.id}">Delete</button>
+          <div class="cell" style="width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.name||'—')}</div>
+          <div class="cell" style="width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.description||'')}</div>
+          <div class="cell" style="width:70px;text-align:right;">${item.cost}</div>
+          <div class="cell" style="width:70px;text-align:right;">${item.stock}</div>
+          <div class="cell" style="width:100px;text-align:center;display:flex;align-items:center;justify-content:center;">
+            <button class="btn btn-danger btn-xxs" style="padding:4px 16px;font-size:14px;vertical-align:middle;" data-act="delete" data-id="${item.id}">Delete</button>
           </div>
         `;
         body.appendChild(row);

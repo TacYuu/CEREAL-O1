@@ -116,17 +116,19 @@
       <!-- Shop Item List (Unified Design) -->
       <div class="card" style="grid-column:1/-1;">
         <h2>Shop Items</h2>
-        <div class="table users" id="shopItemsTable">
-          <div class="thead">
-            <div class="cell">Photo</div>
-            <div class="cell">Name</div>
-            <div class="cell">Description</div>
-            <div class="cell">Cost</div>
-            <div class="cell">Stock</div>
-            <div class="cell">Actions</div>
-          </div>
-          <div id="shopItemsBody"></div>
-        </div>
+        <table class="shop-table" style="width:100%;border-collapse:separate;border-spacing:0;">
+          <thead>
+            <tr>
+              <th style="width:80px;">Photo</th>
+              <th style="width:140px;">Name</th>
+              <th style="width:220px;">Description</th>
+              <th style="width:70px;">Cost</th>
+              <th style="width:70px;">Stock</th>
+              <th style="width:100px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="shopItemsBody"></tbody>
+        </table>
       </div>
 
       
@@ -309,25 +311,21 @@
       const body = document.getElementById('shopItemsBody');
       body.innerHTML = '';
       items.forEach(item=>{
-        const row = document.createElement('div');
-        row.className = 'row';
-        row.style.display = 'flex';
-        row.style.alignItems = 'center';
-        row.style.height = '48px';
+        const tr = document.createElement('tr');
         const placeholderImg = '<div style="width:36px;height:36px;background:#eee;border-radius:6px;display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect width="20" height="20" rx="4" fill="#ccc"/><text x="10" y="14" text-anchor="middle" fill="#fff" font-size="10">?</text></svg></div>';
-        row.innerHTML = `
-          <div class="cell" style="width:80px;min-width:80px;max-width:80px;display:flex;align-items:center;justify-content:center;">
+        tr.innerHTML = `
+          <td style="text-align:center;vertical-align:middle;">
             ${item.photo ? `<img src="${escapeHtml(item.photo)}" alt="photo" style="width:36px;height:36px;object-fit:cover;border-radius:6px;">` : placeholderImg}
-          </div>
-          <div class="cell" style="width:140px;min-width:140px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;">${escapeHtml(item.name||'—')}</div>
-          <div class="cell" style="width:220px;min-width:220px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;">${escapeHtml(item.description||'')}</div>
-          <div class="cell" style="width:70px;min-width:70px;max-width:70px;text-align:right;display:flex;align-items:center;justify-content:flex-end;">${item.cost}</div>
-          <div class="cell" style="width:70px;min-width:70px;max-width:70px;text-align:right;display:flex;align-items:center;justify-content:flex-end;">${item.stock}</div>
-          <div class="cell" style="width:100px;min-width:100px;max-width:100px;text-align:center;display:flex;align-items:center;justify-content:center;">
+          </td>
+          <td style="vertical-align:middle;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.name||'—')}</td>
+          <td style="vertical-align:middle;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.description||'')}</td>
+          <td style="vertical-align:middle;text-align:right;">${item.cost}</td>
+          <td style="vertical-align:middle;text-align:right;">${item.stock}</td>
+          <td style="vertical-align:middle;text-align:center;">
             <button class="btn btn-danger btn-xxs" style="padding:4px 16px;font-size:14px;vertical-align:middle;" data-act="delete" data-id="${item.id}">Delete</button>
-          </div>
+          </td>
         `;
-        body.appendChild(row);
+        body.appendChild(tr);
       });
     }
 

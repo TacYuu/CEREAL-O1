@@ -309,17 +309,20 @@
       const body = document.getElementById('shopItemsBody');
       body.innerHTML = '';
       items.forEach(item=>{
-        const row = document.createElement('div'); row.className = 'row'; row.dataset.id = item.id;
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
         row.innerHTML = `
-          <div class="cell">${item.photo ? `<img src="${escapeHtml(item.photo)}" alt="photo" style="width:32px;height:32px;object-fit:cover;border-radius:4px;">` : ''}</div>
-          <div class="cell">${escapeHtml(item.name||'—')}</div>
-          <div class="cell">${escapeHtml(item.description||'')}</div>
-          <div class="cell">${item.cost}</div>
-          <div class="cell">${item.stock}</div>
-          <div class="cell">
-            <div class="inline-controls">
-              <button class="btn btn-danger btn-xxs" data-act="delete" data-id="${item.id}">Delete</button>
-            </div>
+          <div class="cell" style="display:flex;align-items:center;justify-content:center;min-width:48px;">
+            ${item.photo ? `<img src="${escapeHtml(item.photo)}" alt="photo" style="width:32px;height:32px;object-fit:cover;border-radius:4px;">` : '<span style="color:#bbb;font-size:12px;">No photo</span>'}
+          </div>
+          <div class="cell" style="min-width:120px;">${escapeHtml(item.name||'—')}</div>
+          <div class="cell" style="min-width:180px;">${escapeHtml(item.description||'')}</div>
+          <div class="cell" style="min-width:60px;text-align:right;">${item.cost}</div>
+          <div class="cell" style="min-width:60px;text-align:right;">${item.stock}</div>
+          <div class="cell" style="min-width:80px;text-align:center;">
+            <button class="btn btn-danger btn-xxs" style="padding:2px 10px;font-size:13px;" data-act="delete" data-id="${item.id}">Delete</button>
           </div>
         `;
         body.appendChild(row);

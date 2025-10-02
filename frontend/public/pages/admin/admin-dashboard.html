@@ -315,14 +315,14 @@
         row.style.alignItems = 'center';
         row.style.height = '48px';
         row.innerHTML = `
-          <div class="cell" style="flex:0 0 80px;display:flex;align-items:center;justify-content:center;">
+          <div class="cell" style="width:80px;min-width:80px;max-width:80px;display:flex;align-items:center;justify-content:center;">
             ${item.photo ? `<img src="${escapeHtml(item.photo)}" alt="photo" style="width:36px;height:36px;object-fit:cover;border-radius:6px;">` : '<span style="color:#bbb;font-size:13px;display:flex;align-items:center;justify-content:center;height:36px;">No photo</span>'}
           </div>
-          <div class="cell" style="flex:1 0 140px;display:flex;align-items:center;">${escapeHtml(item.name||'—')}</div>
-          <div class="cell" style="flex:2 0 220px;display:flex;align-items:center;">${escapeHtml(item.description||'')}</div>
-          <div class="cell" style="flex:0 0 70px;display:flex;align-items:center;justify-content:flex-end;">${item.cost}</div>
-          <div class="cell" style="flex:0 0 70px;display:flex;align-items:center;justify-content:flex-end;">${item.stock}</div>
-          <div class="cell" style="flex:0 0 100px;display:flex;align-items:center;justify-content:center;">
+          <div class="cell" style="width:140px;min-width:140px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;">${escapeHtml(item.name||'—')}</div>
+          <div class="cell" style="width:220px;min-width:220px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;">${escapeHtml(item.description||'')}</div>
+          <div class="cell" style="width:70px;min-width:70px;max-width:70px;text-align:right;display:flex;align-items:center;justify-content:flex-end;">${item.cost}</div>
+          <div class="cell" style="width:70px;min-width:70px;max-width:70px;text-align:right;display:flex;align-items:center;justify-content:flex-end;">${item.stock}</div>
+          <div class="cell" style="width:100px;min-width:100px;max-width:100px;text-align:center;display:flex;align-items:center;justify-content:center;">
             <button class="btn btn-danger btn-xxs" style="padding:4px 16px;font-size:14px;vertical-align:middle;" data-act="delete" data-id="${item.id}">Delete</button>
           </div>
         `;

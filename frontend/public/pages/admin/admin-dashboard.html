@@ -112,10 +112,11 @@
         </div>
       </div>
 
-      <!-- Shop Item List -->
+
+      <!-- Shop Item List (Unified Design) -->
       <div class="card" style="grid-column:1/-1;">
         <h2>Shop Items</h2>
-        <div class="table shop-items" id="shopItemsTable">
+        <div class="table users" id="shopItemsTable">
           <div class="thead">
             <div class="cell">Photo</div>
             <div class="cell">Name</div>
@@ -302,19 +303,24 @@
       document.getElementById('rewardName').value=''; document.getElementById('rewardDescription').value=''; photoInput.value='';
       toast('Item added','success');
     }
+
     async function renderShopItems(){
       const items = await listAllRewards();
       const body = document.getElementById('shopItemsBody');
       body.innerHTML = '';
       items.forEach(item=>{
-        const row = document.createElement('div'); row.className = 'row';
+        const row = document.createElement('div'); row.className = 'row'; row.dataset.id = item.id;
         row.innerHTML = `
-          <div class="cell">${item.photo ? `<img src="${escapeHtml(item.photo)}" alt="photo" style="width:40px;height:40px;object-fit:cover;">` : ''}</div>
-          <div class="cell">${escapeHtml(item.name||'')}</div>
+          <div class="cell">${item.photo ? `<img src="${escapeHtml(item.photo)}" alt="photo" style="width:32px;height:32px;object-fit:cover;border-radius:4px;">` : ''}</div>
+          <div class="cell">${escapeHtml(item.name||'—')}</div>
           <div class="cell">${escapeHtml(item.description||'')}</div>
           <div class="cell">${item.cost}</div>
           <div class="cell">${item.stock}</div>
-          <div class="cell"><button class="btn btn-danger btn-xxs" data-act="delete" data-id="${item.id}">Delete</button></div>
+          <div class="cell">
+            <div class="inline-controls">
+              <button class="btn btn-danger btn-xxs" data-act="delete" data-id="${item.id}">Delete</button>
+            </div>
+          </div>
         `;
         body.appendChild(row);
       });

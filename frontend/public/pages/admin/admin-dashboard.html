@@ -123,8 +123,8 @@
               <th style="width:140px;">Name</th>
               <th style="width:220px;">Description</th>
               <th style="width:70px;">Cost</th>
-              <th style="width:70px;">Stock</th>
-              <th style="width:100px;">Actions</th>
+              <th style="width:80px;">Stock</th>
+              <th style="width:120px;">Actions</th>
             </tr>
           </thead>
           <tbody id="shopItemsBody"></tbody>
@@ -320,8 +320,8 @@
           <td style="vertical-align:middle;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.name||'—')}</td>
           <td style="vertical-align:middle;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.description||'')}</td>
           <td style="vertical-align:middle;text-align:right;">${item.cost}</td>
-          <td style="vertical-align:middle;text-align:right;">${item.stock}</td>
-          <td style="vertical-align:middle;text-align:center;">
+          <td style="vertical-align:middle;text-align:center;padding-right:16px;">${item.stock}</td>
+          <td style="vertical-align:middle;text-align:center;padding-left:8px;">
             <button class="btn btn-danger btn-xxs" style="padding:4px 16px;font-size:14px;vertical-align:middle;" data-act="delete" data-id="${item.id}">Delete</button>
           </td>
         `;

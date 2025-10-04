@@ -7,21 +7,34 @@ StartLimitBurst=5
 
 [Service]
 Type=simple
-# Adjust paths below
 WorkingDirectory=/opt/cereal-device
-EnvironmentFile=/opt/cereal-device/.env
+EnvironmentFile=-/opt/cereal-device/.env
+ExecStartPre=/usr/bin/test -f /opt/cereal-device/orangepi_capture.py
 ExecStart=/opt/cereal-device/venv/bin/python -u orangepi_capture.py
-Restart=on-failure
-RestartSec=5
-# Optional: give access to video & serial groups
+Restart=always
+RestartSec=3
+StartLimitIntervalSec=0
 User=orangepi
 Group=orangepi
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=orangepi-capture
+TimeoutStopSec=20
+OOMScoreAdjust=-500
 
 # Hardening
 NoNewPrivileges=true
 ProtectSystem=full
 ProtectHome=true
 ReadWriteDirectories=/opt/cereal-device
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER CAP_FSETID CAP_MKNOD CAP_NET_BIND_SERVICE CAP_SETFCAP CAP_SETGID CAP_SETUID CAP_SYS_CHROOT
 
 [Install]
 WantedBy=multi-user.target

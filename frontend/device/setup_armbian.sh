@@ -77,42 +77,48 @@ fi
 chown -R "$SYSTEM_USER":"$SYSTEM_USER" "$INSTALL_DIR"
 chmod 750 "$INSTALL_DIR"
 
-# Create systemd unit if not present
+# Create / overwrite systemd unit (always ensure latest config)
 SERVICE_PATH="/etc/systemd/system/orangepi-capture.service"
-if [[ ! -f "$SERVICE_PATH" ]]; then
-  cat > "$SERVICE_PATH" <<'UNIT'
+echo "==> Writing systemd service to $SERVICE_PATH"
+cat > "$SERVICE_PATH" <<UNIT
 [Unit]
 Description=Orange Pi Capture & Roboflow Service
 After=network-online.target
 Wants=network-online.target
-StartLimitIntervalSec=500
-StartLimitBurst=5
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/cereal-device
-EnvironmentFile=/opt/cereal-device/.env
-ExecStart=/opt/cereal-device/venv/bin/python -u orangepi_capture.py
-Restart=on-failure
-RestartSec=5
-User=orangepi
-Group=orangepi
+WorkingDirectory=$INSTALL_DIR
+EnvironmentFile=-$INSTALL_DIR/.env
+ExecStartPre=/usr/bin/test -f $INSTALL_DIR/orangepi_capture.py
+ExecStart=$INSTALL_DIR/venv/bin/python -u $INSTALL_DIR/orangepi_capture.py
+Restart=always
+RestartSec=3
+User=$SYSTEM_USER
+Group=$SYSTEM_USER
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=orangepi-capture
+TimeoutStopSec=20
+OOMScoreAdjust=-500
 NoNewPrivileges=true
 ProtectSystem=full
 ProtectHome=true
-ReadWriteDirectories=/opt/cereal-device
+ReadWriteDirectories=$INSTALL_DIR
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+CapabilityBoundingSet=CAP_CHOWN CAP_DAC_OVERRIDE CAP_FOWNER CAP_FSETID CAP_MKNOD CAP_NET_BIND_SERVICE CAP_SETFCAP CAP_SETGID CAP_SETUID CAP_SYS_CHROOT
 
 [Install]
 WantedBy=multi-user.target
 UNIT
-  echo "==> Installed systemd unit"
-fi
-
-# Adjust unit user if needed
-if [[ "$SYSTEM_USER" != "orangepi" ]]; then
-  sed -i "s/^User=.*/User=$SYSTEM_USER/" "$SERVICE_PATH"
-  sed -i "s/^Group=.*/Group=$SYSTEM_USER/" "$SERVICE_PATH"
-fi
+echo "==> Systemd unit installed/updated"
 
 # Enable serial/video access
 groups "$SYSTEM_USER" | grep -q video || usermod -aG video "$SYSTEM_USER" || true
